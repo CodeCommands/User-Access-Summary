@@ -8,9 +8,4 @@
         <target>lightning__HomePage</target>
         <target>lightningCommunity__Page</target>
     </targets>
-    <targetConfigs>
-        <targetConfig targets="lightning__AppPage">
-            <property name="title" type="String" default="User Access Summary" description="Title for the component"/>
-        </targetConfig>
-    </targetConfigs>
 </LightningComponentBundle>

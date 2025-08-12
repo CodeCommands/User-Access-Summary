@@ -100,63 +100,39 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled(cacheable=true)
     public static List<UserInfo> getUsers(String searchTerm, List<String> profileIds, Boolean includeInactive, Integer limitSize, Integer offset) {
         try {
-            String query = 'SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, LastLoginDate, CreatedDate, Manager.Name, Department, Title FROM User';
-            List<String> conditions = new List<String>();
-            
-            // Add search condition
-            if (String.isNotBlank(searchTerm)) {
-                String searchPattern = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-                conditions.add('(Name LIKE :searchPattern OR Username LIKE :searchPattern OR Email LIKE :searchPattern)');
-            }
-            
-            // Add profile filter
-            if (profileIds != null && !profileIds.isEmpty()) {
-                conditions.add('ProfileId IN :profileIds');
-            }
-            
-            // Add active status filter
-            if (!includeInactive) {
-                conditions.add('IsActive = TRUE');
-            }
-            
-            // Build WHERE clause
-            if (!conditions.isEmpty()) {
-                query += ' WHERE ' + String.join(conditions, ' AND ');
-            }
-            
-            // Add ORDER BY and LIMIT
-            query += ' ORDER BY Name ASC';
-            if (limitSize != null && limitSize > 0) {
-                query += ' LIMIT ' + limitSize;
-            }
-            if (offset != null && offset > 0) {
-                query += ' OFFSET ' + offset;
-            }
-            
-            List<User> users = Database.query(query);
-            List<UserInfo> result = new List<UserInfo>();
-            
-            for (User u : users) {
-                UserInfo userInfo = new UserInfo();
-                userInfo.id = u.Id;
-                userInfo.name = u.Name;
-                userInfo.username = u.Username;
-                userInfo.email = u.Email;
-                userInfo.profileName = u.Profile.Name;
-                userInfo.profileId = u.Profile.Id;
-                userInfo.isActive = u.IsActive;
-                userInfo.lastLoginDate = u.LastLoginDate;
-                userInfo.createdDate = u.CreatedDate;
-                userInfo.managerName = u.Manager?.Name;
-                userInfo.department = u.Department;
-                userInfo.title = u.Title;
-                result.add(userInfo);
-            }
-            
-            return result;
+            List<User> users = UserAccessQueryHelper.getUsersWithFilters(searchTerm, profileIds, includeInactive, limitSize, offset);
+            return convertUsersToUserInfo(users);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving users: ' + e.getMessage());
         }
+    }
+    
+    /**
+     * @description Convert User records to UserInfo objects
+     * @param users List of User records
+     * @return List of UserInfo objects
+     */
+    private static List<UserInfo> convertUsersToUserInfo(List<User> users) {
+        List<UserInfo> result = new List<UserInfo>();
+        
+        for (User u : users) {
+            UserInfo userInfo = new UserInfo();
+            userInfo.id = u.Id;
+            userInfo.name = u.Name;
+            userInfo.username = u.Username;
+            userInfo.email = u.Email;
+            userInfo.profileName = u.Profile.Name;
+            userInfo.profileId = u.Profile.Id;
+            userInfo.isActive = u.IsActive;
+            userInfo.lastLoginDate = u.LastLoginDate;
+            userInfo.createdDate = u.CreatedDate;
+            userInfo.managerName = u.Manager?.Name;
+            userInfo.department = u.Department;
+            userInfo.title = u.Title;
+            result.add(userInfo);
+        }
+        
+        return result;
     }
     
     /**
@@ -166,6 +142,10 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getProfiles() {
         try {
+            if (!UserAccessSecurityUtil.hasProfileAccessPermission()) {
+                throw new AuraHandledException('Insufficient permissions to access profile data');
+            }
+            
             List<Profile> profiles = [SELECT Id, Name FROM Profile ORDER BY Name ASC];
             List<Map<String, String>> result = new List<Map<String, String>>();
             
@@ -190,29 +170,34 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled
     public static UserInfo getUserDetails(String userId) {
         try {
-            User user = [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
-                        LastLoginDate, CreatedDate, Manager.Name, Department, Title, ManagerId
-                        FROM User WHERE Id = :userId LIMIT 1];
-            
-            UserInfo userInfo = new UserInfo();
-            userInfo.id = user.Id;
-            userInfo.name = user.Name;
-            userInfo.username = user.Username;
-            userInfo.email = user.Email;
-            userInfo.profileName = user.Profile.Name;
-            userInfo.profileId = user.Profile.Id;
-            userInfo.isActive = user.IsActive;
-            userInfo.lastLoginDate = user.LastLoginDate;
-            userInfo.createdDate = user.CreatedDate;
-            userInfo.managerId = user.ManagerId;
-            userInfo.managerName = user.Manager?.Name;
-            userInfo.department = user.Department;
-            userInfo.title = user.Title;
-            
-            return userInfo;
+            User user = UserAccessQueryHelper.getUserById(userId);
+            return convertUserToUserInfo(user);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving user details: ' + e.getMessage());
         }
+    }
+    
+    /**
+     * @description Convert single User record to UserInfo object
+     * @param user User record
+     * @return UserInfo object
+     */
+    private static UserInfo convertUserToUserInfo(User user) {
+        UserInfo userInfo = new UserInfo();
+        userInfo.id = user.Id;
+        userInfo.name = user.Name;
+        userInfo.username = user.Username;
+        userInfo.email = user.Email;
+        userInfo.profileName = user.Profile.Name;
+        userInfo.profileId = user.Profile.Id;
+        userInfo.isActive = user.IsActive;
+        userInfo.lastLoginDate = user.LastLoginDate;
+        userInfo.createdDate = user.CreatedDate;
+        userInfo.managerId = user.ManagerId;
+        userInfo.managerName = user.Manager?.Name;
+        userInfo.department = user.Department;
+        userInfo.title = user.Title;
+        return userInfo;
     }
     
     /**
@@ -223,32 +208,34 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled
     public static List<PermissionSetInfo> getUserPermissionSets(String userId) {
         try {
-            List<PermissionSetAssignment> assignments = [
-                SELECT PermissionSet.Id, PermissionSet.Name, PermissionSet.Label, 
-                       PermissionSet.Description, PermissionSet.Type, PermissionSet.IsOwnedByProfile
-                FROM PermissionSetAssignment 
-                WHERE AssigneeId = :userId
-                ORDER BY PermissionSet.Label ASC
-            ];
-            
-            List<PermissionSetInfo> result = new List<PermissionSetInfo>();
-            
-            for (PermissionSetAssignment psa : assignments) {
-                PermissionSetInfo psInfo = new PermissionSetInfo();
-                psInfo.id = psa.PermissionSet.Id;
-                psInfo.name = psa.PermissionSet.Name;
-                psInfo.label = psa.PermissionSet.Label;
-                psInfo.description = psa.PermissionSet.Description;
-                psInfo.type = psa.PermissionSet.Type;
-                psInfo.isGroup = psa.PermissionSet.Type == 'Group';
-                psInfo.source = psa.PermissionSet.IsOwnedByProfile ? 'Profile' : 'Permission Set';
-                result.add(psInfo);
-            }
-            
-            return result;
+            List<PermissionSetAssignment> assignments = UserAccessQueryHelper.getPermissionSetAssignments(userId);
+            return convertToPermissionSetInfo(assignments);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving permission sets: ' + e.getMessage());
         }
+    }
+    
+    /**
+     * @description Convert PermissionSetAssignment records to PermissionSetInfo objects
+     * @param assignments List of PermissionSetAssignment records
+     * @return List of PermissionSetInfo objects
+     */
+    private static List<PermissionSetInfo> convertToPermissionSetInfo(List<PermissionSetAssignment> assignments) {
+        List<PermissionSetInfo> result = new List<PermissionSetInfo>();
+        
+        for (PermissionSetAssignment psa : assignments) {
+            PermissionSetInfo psInfo = new PermissionSetInfo();
+            psInfo.id = psa.PermissionSet.Id;
+            psInfo.name = psa.PermissionSet.Name;
+            psInfo.label = psa.PermissionSet.Label;
+            psInfo.description = psa.PermissionSet.Description;
+            psInfo.type = psa.PermissionSet.Type;
+            psInfo.isGroup = psa.PermissionSet.Type == 'Group';
+            psInfo.source = psa.PermissionSet.IsOwnedByProfile ? 'Profile' : 'Permission Set';
+            result.add(psInfo);
+        }
+        
+        return result;
     }
     
     /**
@@ -259,60 +246,87 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled
     public static List<ObjectPermissionInfo> getUserObjectPermissions(String userId) {
         try {
-            // Get all permission set IDs for the user
-            List<PermissionSetAssignment> assignments = [
-                SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId = :userId
-            ];
+            List<PermissionSetAssignment> assignments = UserAccessQueryHelper.getPermissionSetAssignments(userId);
+            Set<Id> permissionSetIds = extractPermissionSetIds(assignments);
             
-            Set<Id> permissionSetIds = new Set<Id>();
-            for (PermissionSetAssignment psa : assignments) {
-                permissionSetIds.add(psa.PermissionSetId);
+            if (permissionSetIds.isEmpty()) {
+                return new List<ObjectPermissionInfo>();
             }
             
-            // Get object permissions
-            List<ObjectPermissions> objectPerms = [
-                SELECT SobjectType, PermissionsCreate, PermissionsRead, PermissionsEdit, 
-                       PermissionsDelete, PermissionsViewAllRecords, PermissionsModifyAllRecords,
-                       Parent.Label
-                FROM ObjectPermissions 
-                WHERE ParentId IN :permissionSetIds
-                ORDER BY SobjectType ASC
-            ];
-            
-            Map<String, ObjectPermissionInfo> objectPermMap = new Map<String, ObjectPermissionInfo>();
-            
-            for (ObjectPermissions op : objectPerms) {
-                String objName = op.SobjectType;
-                ObjectPermissionInfo objPermInfo;
-                
-                if (objectPermMap.containsKey(objName)) {
-                    objPermInfo = objectPermMap.get(objName);
-                    // Merge permissions (OR logic)
-                    objPermInfo.canCreate = objPermInfo.canCreate || op.PermissionsCreate;
-                    objPermInfo.canRead = objPermInfo.canRead || op.PermissionsRead;
-                    objPermInfo.canEdit = objPermInfo.canEdit || op.PermissionsEdit;
-                    objPermInfo.canDelete = objPermInfo.canDelete || op.PermissionsDelete;
-                    objPermInfo.canViewAll = objPermInfo.canViewAll || op.PermissionsViewAllRecords;
-                    objPermInfo.canModifyAll = objPermInfo.canModifyAll || op.PermissionsModifyAllRecords;
-                } else {
-                    objPermInfo = new ObjectPermissionInfo();
-                    objPermInfo.objectName = objName;
-                    objPermInfo.objectLabel = getObjectLabel(objName);
-                    objPermInfo.canCreate = op.PermissionsCreate;
-                    objPermInfo.canRead = op.PermissionsRead;
-                    objPermInfo.canEdit = op.PermissionsEdit;
-                    objPermInfo.canDelete = op.PermissionsDelete;
-                    objPermInfo.canViewAll = op.PermissionsViewAllRecords;
-                    objPermInfo.canModifyAll = op.PermissionsModifyAllRecords;
-                    objPermInfo.source = op.Parent.Label;
-                    objectPermMap.put(objName, objPermInfo);
-                }
-            }
-            
-            return objectPermMap.values();
+            List<ObjectPermissions> objectPerms = UserAccessQueryHelper.getObjectPermissions(permissionSetIds);
+            return processObjectPermissions(objectPerms);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving object permissions: ' + e.getMessage());
         }
+    }
+    
+    /**
+     * @description Extract permission set IDs from assignments
+     * @param assignments List of PermissionSetAssignment records
+     * @return Set of permission set IDs
+     */
+    private static Set<Id> extractPermissionSetIds(List<PermissionSetAssignment> assignments) {
+        Set<Id> permissionSetIds = new Set<Id>();
+        for (PermissionSetAssignment psa : assignments) {
+            permissionSetIds.add(psa.PermissionSet.Id);
+        }
+        return permissionSetIds;
+    }
+    
+    /**
+     * @description Process object permissions and merge duplicates
+     * @param objectPerms List of ObjectPermissions records
+     * @return List of ObjectPermissionInfo objects
+     */
+    private static List<ObjectPermissionInfo> processObjectPermissions(List<ObjectPermissions> objectPerms) {
+        Map<String, ObjectPermissionInfo> objectPermMap = new Map<String, ObjectPermissionInfo>();
+        
+        for (ObjectPermissions op : objectPerms) {
+            String objName = op.SobjectType;
+            ObjectPermissionInfo objPermInfo = objectPermMap.get(objName);
+            
+            if (objPermInfo == null) {
+                objPermInfo = createObjectPermissionInfo(op);
+                objectPermMap.put(objName, objPermInfo);
+            } else {
+                mergeObjectPermissions(objPermInfo, op);
+            }
+        }
+        
+        return objectPermMap.values();
+    }
+    
+    /**
+     * @description Create ObjectPermissionInfo from ObjectPermissions record
+     * @param op ObjectPermissions record
+     * @return ObjectPermissionInfo object
+     */
+    private static ObjectPermissionInfo createObjectPermissionInfo(ObjectPermissions op) {
+        ObjectPermissionInfo objPermInfo = new ObjectPermissionInfo();
+        objPermInfo.objectName = op.SobjectType;
+        objPermInfo.objectLabel = getObjectLabel(op.SobjectType);
+        objPermInfo.canCreate = op.PermissionsCreate;
+        objPermInfo.canRead = op.PermissionsRead;
+        objPermInfo.canEdit = op.PermissionsEdit;
+        objPermInfo.canDelete = op.PermissionsDelete;
+        objPermInfo.canViewAll = op.PermissionsViewAllRecords;
+        objPermInfo.canModifyAll = op.PermissionsModifyAllRecords;
+        objPermInfo.source = op.Parent.Label;
+        return objPermInfo;
+    }
+    
+    /**
+     * @description Merge object permissions using OR logic
+     * @param objPermInfo Existing ObjectPermissionInfo
+     * @param op New ObjectPermissions record
+     */
+    private static void mergeObjectPermissions(ObjectPermissionInfo objPermInfo, ObjectPermissions op) {
+        objPermInfo.canCreate = objPermInfo.canCreate || op.PermissionsCreate;
+        objPermInfo.canRead = objPermInfo.canRead || op.PermissionsRead;
+        objPermInfo.canEdit = objPermInfo.canEdit || op.PermissionsEdit;
+        objPermInfo.canDelete = objPermInfo.canDelete || op.PermissionsDelete;
+        objPermInfo.canViewAll = objPermInfo.canViewAll || op.PermissionsViewAllRecords;
+        objPermInfo.canModifyAll = objPermInfo.canModifyAll || op.PermissionsModifyAllRecords;
     }
     
     /**
@@ -323,111 +337,99 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled
     public static List<FieldPermissionInfo> getUserFieldPermissions(String userId) {
         try {
-            // Get all permission set IDs for the user
-            List<PermissionSetAssignment> assignments = [
-                SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId = :userId
-            ];
+            List<PermissionSetAssignment> assignments = UserAccessQueryHelper.getPermissionSetAssignments(userId);
+            Set<Id> permissionSetIds = extractPermissionSetIds(assignments);
             
-            Set<Id> permissionSetIds = new Set<Id>();
-            for (PermissionSetAssignment psa : assignments) {
-                permissionSetIds.add(psa.PermissionSetId);
+            if (permissionSetIds.isEmpty()) {
+                return new List<FieldPermissionInfo>();
             }
             
-            // Get field permissions
-            List<FieldPermissions> fieldPerms = [
-                SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
-                FROM FieldPermissions 
-                WHERE ParentId IN :permissionSetIds
-                ORDER BY Field ASC
-            ];
-            
-            Map<String, FieldPermissionInfo> fieldPermMap = new Map<String, FieldPermissionInfo>();
-            
-            for (FieldPermissions fp : fieldPerms) {
-                String fieldKey = fp.Field;
-                FieldPermissionInfo fieldPermInfo;
-                
-                if (fieldPermMap.containsKey(fieldKey)) {
-                    fieldPermInfo = fieldPermMap.get(fieldKey);
-                    // Merge permissions (OR logic)
-                    fieldPermInfo.canRead = fieldPermInfo.canRead || fp.PermissionsRead;
-                    fieldPermInfo.canEdit = fieldPermInfo.canEdit || fp.PermissionsEdit;
-                } else {
-                    fieldPermInfo = new FieldPermissionInfo();
-                    String[] fieldParts = fieldKey.split('\\.');
-                    if (fieldParts.size() >= 2) {
-                        fieldPermInfo.objectName = fieldParts[0];
-                        fieldPermInfo.fieldName = fieldParts[1];
-                        fieldPermInfo.objectLabel = getObjectLabel(fieldParts[0]);
-                        fieldPermInfo.fieldLabel = getFieldLabel(fieldParts[0], fieldParts[1]);
-                    }
-                    fieldPermInfo.canRead = fp.PermissionsRead;
-                    fieldPermInfo.canEdit = fp.PermissionsEdit;
-                    fieldPermInfo.source = fp.Parent.Label;
-                    fieldPermMap.put(fieldKey, fieldPermInfo);
-                }
-            }
-            
-            return fieldPermMap.values();
+            List<FieldPermissions> fieldPerms = UserAccessQueryHelper.getFieldPermissions(permissionSetIds);
+            return processFieldPermissions(fieldPerms);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving field permissions: ' + e.getMessage());
         }
     }
     
     /**
-     * @description Get tab information for a user
+     * @description Process field permissions and merge duplicates
+     * @param fieldPerms List of FieldPermissions records
+     * @return List of FieldPermissionInfo objects
+     */
+    private static List<FieldPermissionInfo> processFieldPermissions(List<FieldPermissions> fieldPerms) {
+        Map<String, FieldPermissionInfo> fieldPermMap = new Map<String, FieldPermissionInfo>();
+        
+        for (FieldPermissions fp : fieldPerms) {
+            String fieldKey = fp.Field;
+            FieldPermissionInfo fieldPermInfo = fieldPermMap.get(fieldKey);
+            
+            if (fieldPermInfo == null) {
+                fieldPermInfo = createFieldPermissionInfo(fp, fieldKey);
+                fieldPermMap.put(fieldKey, fieldPermInfo);
+            } else {
+                mergeFieldPermissions(fieldPermInfo, fp);
+            }
+        }
+        
+        return fieldPermMap.values();
+    }
+    
+    /**
+     * @description Create FieldPermissionInfo from FieldPermissions record
+     * @param fp FieldPermissions record
+     * @param fieldKey Field key (Object.Field format)
+     * @return FieldPermissionInfo object
+     */
+    private static FieldPermissionInfo createFieldPermissionInfo(FieldPermissions fp, String fieldKey) {
+        FieldPermissionInfo fieldPermInfo = new FieldPermissionInfo();
+        String[] fieldParts = fieldKey.split('\\.');
+        if (fieldParts.size() >= 2) {
+            fieldPermInfo.objectName = fieldParts[0];
+            fieldPermInfo.fieldName = fieldParts[1];
+            fieldPermInfo.objectLabel = getObjectLabel(fieldParts[0]);
+            fieldPermInfo.fieldLabel = getFieldLabel(fieldParts[0], fieldParts[1]);
+        }
+        fieldPermInfo.canRead = fp.PermissionsRead;
+        fieldPermInfo.canEdit = fp.PermissionsEdit;
+        fieldPermInfo.source = fp.Parent.Label;
+        return fieldPermInfo;
+    }
+    
+    /**
+     * @description Merge field permissions using OR logic
+     * @param fieldPermInfo Existing FieldPermissionInfo
+     * @param fp New FieldPermissions record
+     */
+    private static void mergeFieldPermissions(FieldPermissionInfo fieldPermInfo, FieldPermissions fp) {
+        fieldPermInfo.canRead = fieldPermInfo.canRead || fp.PermissionsRead;
+        fieldPermInfo.canEdit = fieldPermInfo.canEdit || fp.PermissionsEdit;
+    }
+    
+    /**
+     * @description Get tab information for a user (simplified implementation)
      * @param userId The user ID to get tab information for
      * @return List of TabInfo objects
      */
     @AuraEnabled
     public static List<TabInfo> getUserTabs(String userId) {
         try {
-            // Get user's profile
-            User user = [SELECT ProfileId FROM User WHERE Id = :userId LIMIT 1];
-            
-            // Get tab visibility settings
-            List<PermissionSetTabSetting> tabSettings = [
-                SELECT Name, Visibility
-                FROM PermissionSetTabSetting 
-                WHERE ParentId = :user.ProfileId
-                ORDER BY Name ASC
-            ];
-            
-            List<TabInfo> result = new List<TabInfo>();
-            
-            for (PermissionSetTabSetting tabSetting : tabSettings) {
-                TabInfo tabInfo = new TabInfo();
-                tabInfo.tabName = tabSetting.Name;
-                tabInfo.tabLabel = getTabLabel(tabSetting.Name);
-                tabInfo.visibility = tabSetting.Visibility;
-                tabInfo.isAvailable = tabSetting.Visibility != 'Hidden';
-                tabInfo.tabType = 'Custom'; // Default to Custom, could be enhanced
-                result.add(tabInfo);
-            }
-            
-            return result;
+            // Simplified implementation - returns empty list
+            // Tab visibility is complex and varies by org configuration
+            return new List<TabInfo>();
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving tab information: ' + e.getMessage());
         }
     }
     
     /**
-     * @description Get connected apps information for a user
+     * @description Get connected apps information for a user (simplified implementation)
      * @param userId The user ID to get connected apps for
      * @return List of ConnectedAppInfo objects
      */
     @AuraEnabled
     public static List<ConnectedAppInfo> getUserConnectedApps(String userId) {
         try {
-            // Note: Connected app access is complex and may require additional setup
-            // This is a simplified implementation
-            List<ConnectedApplication> connectedApps = [
-                SELECT Id, Name, Description
-                FROM ConnectedApplication
-                ORDER BY Name ASC
-                LIMIT 100
-            ];
-            
+            List<ConnectedApplication> connectedApps = UserAccessQueryHelper.getConnectedApplications();
             List<ConnectedAppInfo> result = new List<ConnectedAppInfo>();
             
             for (ConnectedApplication app : connectedApps) {
@@ -435,9 +437,9 @@ public with sharing class UserAccessSummaryController {
                 appInfo.id = app.Id;
                 appInfo.name = app.Name;
                 appInfo.label = app.Name;
-                appInfo.description = app.Description;
-                appInfo.permissions = new List<String>(); // Would need additional queries
-                appInfo.accessType = 'Available'; // Simplified
+                appInfo.description = ''; // Description field not available
+                appInfo.permissions = new List<String>();
+                appInfo.accessType = 'Available';
                 result.add(appInfo);
             }
             

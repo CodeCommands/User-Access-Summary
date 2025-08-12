@@ -5,6 +5,9 @@
         <members>UserAccessSummaryControllerTest</members>
         <members>UserAccessExportHelper</members>
         <members>UserAccessExportHelperTest</members>
+        <members>UserAccessSecurityUtil</members>
+        <members>UserAccessSecurityUtilTest</members>
+        <members>UserAccessQueryHelper</members>
         <name>ApexClass</name>
     </types>
     <types>

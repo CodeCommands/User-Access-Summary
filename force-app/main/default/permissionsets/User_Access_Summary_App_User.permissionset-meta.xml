@@ -11,11 +11,11 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
-        <name>ViewSetup</name>
+        <name>ViewRoles</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
-        <name>ManageUsers</name>
+        <name>ViewSetup</name>
     </userPermissions>
     
     <!-- Object Permissions -->

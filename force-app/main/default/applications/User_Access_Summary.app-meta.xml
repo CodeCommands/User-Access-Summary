@@ -4,7 +4,6 @@
         <headerColor>#0176D3</headerColor>
         <logoVersion>1</logoVersion>
         <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
-        <showAppName>true</showAppName>
     </brand>
     <description>User Access Summary App for auditing and managing user permissions</description>
     <flexiPages>
