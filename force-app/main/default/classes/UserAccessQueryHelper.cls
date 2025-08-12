@@ -6,65 +6,71 @@
 public with sharing class UserAccessQueryHelper {
     
     /**
-     * @description Build dynamic user query with filters
-     * @param searchTerm Search term for filtering
-     * @param profileIds Profile IDs to filter by
-     * @param includeInactive Include inactive users
-     * @param limitSize Limit number of results
-     * @param offset Offset for pagination
+     * @description Get users with filters using static SOQL to prevent injection
+     * @param filterCriteria Filter criteria object
      * @return List of User records
      */
-    public static List<User> getUsersWithFilters(String searchTerm, List<String> profileIds, 
-                                                Boolean includeInactive, Integer limitSize, Integer offset) {
+    public static List<User> getUsersWithFilters(UserAccessFilterCriteria filterCriteria) {
         if (!UserAccessSecurityUtil.hasUserAccessPermission()) {
             throw new AuraHandledException('Insufficient permissions to access user data');
         }
         
-        String query = 'SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, ' +
-                      'LastLoginDate, CreatedDate, Manager.Name, Department, Title FROM User';
-        
-        List<String> conditions = buildUserQueryConditions(searchTerm, profileIds, includeInactive);
-        
-        if (!conditions.isEmpty()) {
-            query += ' WHERE ' + String.join(conditions, ' AND ');
+        // Check CRUD permissions for User object
+        if (!Schema.sObjectType.User.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access User records.');
         }
         
-        query += ' ORDER BY Name ASC';
+        // Use different static queries based on filter criteria to avoid SOQL injection
+        String searchPattern = String.isNotBlank(filterCriteria.searchTerm) ? 
+            '%' + String.escapeSingleQuotes(filterCriteria.searchTerm) + '%' : null;
+        List<String> profileIds = (filterCriteria.profileIds != null && !filterCriteria.profileIds.isEmpty()) ? 
+            filterCriteria.profileIds : null;
+        Integer limitSize = filterCriteria.limitSize != null ? filterCriteria.limitSize : 200;
         
-        if (limitSize != null && limitSize > 0) {
-            query += ' LIMIT ' + limitSize;
-        }
-        if (offset != null && offset > 0) {
-            query += ' OFFSET ' + offset;
-        }
-        
-        return Database.query(query);
-    }
-    
-    /**
-     * @description Build query conditions for user filtering
-     * @param searchTerm Search term
-     * @param profileIds Profile IDs
-     * @param includeInactive Include inactive users
-     * @return List of query conditions
-     */
-    private static List<String> buildUserQueryConditions(String searchTerm, List<String> profileIds, Boolean includeInactive) {
-        List<String> conditions = new List<String>();
-        
-        if (String.isNotBlank(searchTerm)) {
-            String searchPattern = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-            conditions.add('(Name LIKE :searchPattern OR Username LIKE :searchPattern OR Email LIKE :searchPattern)');
+        // Query all users if no filters
+        if (searchPattern == null && profileIds == null && filterCriteria.includeInactive) {
+            return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                    LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                    FROM User ORDER BY Name ASC LIMIT :limitSize];
         }
         
-        if (profileIds != null && !profileIds.isEmpty()) {
-            conditions.add('ProfileId IN :profileIds');
+        // Query active users only
+        if (searchPattern == null && profileIds == null && !filterCriteria.includeInactive) {
+            return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                    LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                    FROM User WHERE IsActive = TRUE ORDER BY Name ASC LIMIT :limitSize];
         }
         
-        if (!includeInactive) {
-            conditions.add('IsActive = TRUE');
+        // Query with search term only (active users)
+        if (searchPattern != null && profileIds == null && !filterCriteria.includeInactive) {
+            return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                    LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                    FROM User WHERE IsActive = TRUE AND 
+                    (Name LIKE :searchPattern OR Username LIKE :searchPattern OR Email LIKE :searchPattern)
+                    ORDER BY Name ASC LIMIT :limitSize];
         }
         
-        return conditions;
+        // Query with profile filter only (active users)
+        if (searchPattern == null && profileIds != null && !filterCriteria.includeInactive) {
+            return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                    LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                    FROM User WHERE IsActive = TRUE AND ProfileId IN :profileIds
+                    ORDER BY Name ASC LIMIT :limitSize];
+        }
+        
+        // Query with both search and profile filters (active users)
+        if (searchPattern != null && profileIds != null && !filterCriteria.includeInactive) {
+            return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                    LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                    FROM User WHERE IsActive = TRUE AND ProfileId IN :profileIds AND
+                    (Name LIKE :searchPattern OR Username LIKE :searchPattern OR Email LIKE :searchPattern)
+                    ORDER BY Name ASC LIMIT :limitSize];
+        }
+        
+        // Default fallback - active users only
+        return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
+                LastLoginDate, CreatedDate, Manager.Name, Department, Title 
+                FROM User WHERE IsActive = TRUE ORDER BY Name ASC LIMIT :limitSize];
     }
     
     /**
@@ -75,6 +81,11 @@ public with sharing class UserAccessQueryHelper {
     public static User getUserById(String userId) {
         if (!UserAccessSecurityUtil.hasUserAccessPermission()) {
             throw new AuraHandledException('Insufficient permissions to access user data');
+        }
+        
+        // Check CRUD permissions for User object
+        if (!Schema.sObjectType.User.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access User records.');
         }
         
         return [SELECT Id, Name, Username, Email, Profile.Name, Profile.Id, IsActive, 
@@ -92,6 +103,11 @@ public with sharing class UserAccessQueryHelper {
             throw new AuraHandledException('Insufficient permissions to access permission set data');
         }
         
+        // Check CRUD permissions for PermissionSetAssignment object
+        if (!Schema.sObjectType.PermissionSetAssignment.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access PermissionSetAssignment records.');
+        }
+        
         return [SELECT PermissionSet.Id, PermissionSet.Name, PermissionSet.Label, 
                 PermissionSet.Description, PermissionSet.Type, PermissionSet.IsOwnedByProfile
                 FROM PermissionSetAssignment 
@@ -107,6 +123,11 @@ public with sharing class UserAccessQueryHelper {
     public static List<ObjectPermissions> getObjectPermissions(Set<Id> permissionSetIds) {
         if (!UserAccessSecurityUtil.hasObjectPermissionAccessPermission()) {
             throw new AuraHandledException('Insufficient permissions to access object permission data');
+        }
+        
+        // Check CRUD permissions for ObjectPermissions object
+        if (!Schema.sObjectType.ObjectPermissions.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access ObjectPermissions records.');
         }
         
         return [SELECT SobjectType, PermissionsCreate, PermissionsRead, PermissionsEdit, 
@@ -127,6 +148,11 @@ public with sharing class UserAccessQueryHelper {
             throw new AuraHandledException('Insufficient permissions to access field permission data');
         }
         
+        // Check CRUD permissions for FieldPermissions object
+        if (!Schema.sObjectType.FieldPermissions.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access FieldPermissions records.');
+        }
+        
         return [SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
                 FROM FieldPermissions 
                 WHERE ParentId IN :permissionSetIds
@@ -140,6 +166,11 @@ public with sharing class UserAccessQueryHelper {
     public static List<ConnectedApplication> getConnectedApplications() {
         if (!UserAccessSecurityUtil.hasConnectedAppAccessPermission()) {
             throw new AuraHandledException('Insufficient permissions to access connected app data');
+        }
+        
+        // Check CRUD permissions for ConnectedApplication object
+        if (!Schema.sObjectType.ConnectedApplication.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access ConnectedApplication records.');
         }
         
         return [SELECT Id, Name FROM ConnectedApplication ORDER BY Name ASC LIMIT 100];

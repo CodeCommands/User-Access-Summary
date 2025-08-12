@@ -6,9 +6,6 @@
         <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
     </brand>
     <description>User Access Summary App for auditing and managing user permissions</description>
-    <flexiPages>
-        <page>User_Access_Summary_Home</page>
-    </flexiPages>
     <formFactors>Large</formFactors>
     <formFactors>Medium</formFactors>
     <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
@@ -20,5 +17,4 @@
         <tab>User_Access_Summary_Tab</tab>
     </tabs>
     <uiType>Lightning</uiType>
-    <utilityBar>User_Access_Summary_UtilityBar</utilityBar>
 </LightningApp>
