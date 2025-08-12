@@ -1,0 +1,64 @@
+.user-status-active {
+    color: #04844b;
+    font-weight: 600;
+}
+
+.user-status-inactive {
+    color: #c23934;
+    font-weight: 600;
+}
+
+.permission-true {
+    color: #04844b;
+}
+
+.permission-false {
+    color: #c23934;
+}
+
+.search-section {
+    background-color: #f3f3f3;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.user-summary-card {
+    background-color: #fafaf9;
+    border-left: 4px solid #0176d3;
+}
+
+.permission-tabs .slds-tabs_scoped__content {
+    padding: 1rem;
+}
+
+.export-button {
+    margin-left: auto;
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    color: #5c6b73;
+}
+
+.no-data-illustration {
+    opacity: 0.5;
+}
+
+.data-table-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.permission-badge-true {
+    background-color: #4bca81;
+    color: white;
+}
+
+.permission-badge-false {
+    background-color: #ea001e;
+    color: white;
+}

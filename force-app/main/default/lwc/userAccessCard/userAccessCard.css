@@ -1,0 +1,45 @@
+.user-card {
+    margin-bottom: 1rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.user-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-detail {
+    margin-bottom: 0.5rem;
+}
+
+.user-detail:last-child {
+    margin-bottom: 0;
+}
+
+.status-active {
+    color: #04844b;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: #c23934;
+    font-weight: 600;
+}
+
+.slds-card__header-title button {
+    font-size: inherit;
+    font-weight: 700;
+    color: #0176d3;
+    text-decoration: none;
+}
+
+.slds-card__header-title button:hover {
+    text-decoration: underline;
+}
+
+.user-card .slds-avatar {
+    border: 2px solid #e5e5e5;
+}
+
+.user-card:hover .slds-avatar {
+    border-color: #0176d3;
+}

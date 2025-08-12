@@ -1,0 +1,99 @@
+<template>
+    <div class="user-card slds-card">
+        <header class="slds-card__header">
+            <div class="slds-media slds-media_center">
+                <div class="slds-media__figure">
+                    <lightning-avatar 
+                        src="" 
+                        fallback-icon-name="standard:user"
+                        alternative-text={user.name}
+                        initials={userInitials}
+                        size="medium">
+                    </lightning-avatar>
+                </div>
+                <div class="slds-media__body">
+                    <h2 class="slds-card__header-title">
+                        <button 
+                            class="slds-button slds-button_reset slds-text-heading_small"
+                            onclick={handleSelectUser}>
+                            {user.name}
+                        </button>
+                    </h2>
+                    <p class="slds-text-body_small slds-text-color_weak">{user.username}</p>
+                </div>
+                <div class="slds-media__actions">
+                    <lightning-badge 
+                        label={userStatusText} 
+                        variant={userStatusVariant}>
+                    </lightning-badge>
+                </div>
+            </div>
+        </header>
+        
+        <div class="slds-card__body slds-card__body_inner">
+            <div class="slds-grid slds-gutters_small">
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="user-detail">
+                        <span class="slds-text-title_caps slds-text-color_weak">Email</span>
+                        <p class="slds-text-body_small">{user.email}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="user-detail">
+                        <span class="slds-text-title_caps slds-text-color_weak">Profile</span>
+                        <p class="slds-text-body_small">{user.profileName}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="user-detail">
+                        <span class="slds-text-title_caps slds-text-color_weak">Last Login</span>
+                        <p class="slds-text-body_small">{lastLoginFormatted}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <div class="user-detail">
+                        <span class="slds-text-title_caps slds-text-color_weak">Department</span>
+                        <p class="slds-text-body_small">{user.department}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <template if:true={isExpanded}>
+                <div class="slds-m-top_small slds-border_top slds-p-top_small">
+                    <div class="slds-grid slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-2">
+                            <div class="user-detail">
+                                <span class="slds-text-title_caps slds-text-color_weak">Title</span>
+                                <p class="slds-text-body_small">{user.title}</p>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <div class="user-detail">
+                                <span class="slds-text-title_caps slds-text-color_weak">Manager</span>
+                                <p class="slds-text-body_small">{user.managerName}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+        
+        <template if:true={showActions}>
+            <footer class="slds-card__footer">
+                <div class="slds-grid slds-grid_align-spread">
+                    <button 
+                        class="slds-button slds-button_neutral"
+                        onclick={handleToggleExpand}>
+                        <template if:true={isExpanded}>Show Less</template>
+                        <template if:false={isExpanded}>Show More</template>
+                    </button>
+                    <lightning-button 
+                        label="View Permissions"
+                        variant="brand"
+                        onclick={handleViewPermissions}>
+                    </lightning-button>
+                </div>
+            </footer>
+        </template>
+    </div>
+</template>

@@ -1,18 +1,172 @@
-# Salesforce DX Project: Next Steps
+# User Access Summary App
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+A comprehensive Salesforce Lightning application that provides administrators with enhanced capabilities to view, analyze, and export user access permissions for auditing and compliance purposes.
 
-## How Do You Plan to Deploy Your Changes?
+## Features
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+### 🔍 Enhanced User Search & Filtering
+- **Real-time Search**: Search users by name, username, or email with instant results
+- **Profile Filtering**: Filter users by specific profiles or view all profiles
+- **Active/Inactive Toggle**: Include or exclude inactive users from search results
+- **Pagination Support**: Handle large user datasets efficiently
 
-## Configure Your Salesforce DX Project
+### 👤 Comprehensive User Access Summary
+- **User Overview**: Display basic user information, manager details, and status
+- **Permission Sets**: View all assigned permission sets, permission set groups, and their sources
+- **Object Permissions**: Complete CRUD permissions analysis for all objects
+- **Field Permissions**: Detailed field-level read/edit access information
+- **Tab Visibility**: Available and visible tabs with permission details
+- **Connected Apps**: Access to connected applications and their permissions
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+### 📊 Advanced Export Capabilities
+- **Excel/CSV Export**: Generate comprehensive reports in spreadsheet format
+- **Multi-tab Structure**: Organized data export with separate sections for each permission type
+- **Formatted Output**: Professional formatting with headers, conditional formatting, and proper structure
+- **Audit Trail**: Export timestamps and user information for compliance documentation
 
-## Read All About It
+### 🔐 Security & Compliance
+- **Permission-based Access**: Controlled access through custom permission set
+- **Field-level Security**: Respects existing Salesforce security settings
+- **Audit-ready Reports**: Generate compliance-ready documentation
+- **Secure Data Handling**: All operations respect sharing rules and object-level security
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+## Installation
+
+### Prerequisites
+- Salesforce org with Lightning Experience enabled
+- System Administrator access
+- SFDX CLI installed (for deployment)
+
+### Deployment Steps
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/CodeCommands/User-Access-Summary.git
+   cd User-Access-Summary
+   ```
+
+2. **Authenticate with your Salesforce Org**
+   ```bash
+   sf org login web --alias myorg
+   ```
+
+3. **Deploy the Application**
+   ```bash
+   sf project deploy start --target-org myorg
+   ```
+
+4. **Assign Permission Set**
+   - Navigate to Setup → Permission Sets
+   - Find "User Access Summary App User" permission set
+   - Assign to appropriate users/administrators
+
+5. **Access the Application**
+   - Open App Launcher (9 dots icon)
+   - Search for "User Access Summary"
+   - Click to open the application
+
+## Usage Guide
+
+### Getting Started
+
+1. **Open the Application**
+   - Launch "User Access Summary" from the App Launcher
+   - The main interface displays with user search capabilities
+
+2. **Search and Filter Users**
+   - Use the search box to find specific users (minimum 2 characters)
+   - Apply profile filters to narrow down results
+   - Toggle "Include Inactive Users" as needed
+   - Navigate through pages using pagination controls
+
+3. **View User Access Details**
+   - Click on any user name to view detailed access information
+   - Review information across five comprehensive tabs:
+     - **User Permissions**: Permission sets and groups
+     - **Object Permissions**: CRUD access by object
+     - **Field Permissions**: Read/edit access by field
+     - **Tabs**: Tab visibility and availability
+     - **Connected Apps**: Application access permissions
+
+4. **Export User Data**
+   - Click "Export to Excel" from the user details view
+   - Download automatically generated CSV/Excel file
+   - File includes all permission data in organized tabs
+
+## Security Model
+
+### Permission Set: "User Access Summary App User"
+
+**Required Permissions:**
+- `ViewAllUsers`: View all users in the organization
+- `ViewSetup`: Access setup and configuration
+- `ManageUsers`: User management capabilities
+
+**Object Access:**
+- **User**: Read access with "View All Records"
+- **Profile**: Read access with "View All Records"
+- **PermissionSet**: Read access with "View All Records"
+- **PermissionSetAssignment**: Read access with "View All Records"
+- **PermissionSetGroup**: Read access with "View All Records"
+- **ConnectedApplication**: Read access with "View All Records"
+
+## Components
+
+### Lightning Web Components
+- `userAccessSummaryApp`: Main application component
+- `userAccessCard`: User display component
+
+### Apex Classes
+- `UserAccessSummaryController`: Core application logic
+- `UserAccessExportHelper`: Export functionality
+- Test classes with 90%+ coverage
+
+### Metadata
+- Custom Application: User Access Summary
+- Permission Set: User Access Summary App User
+- FlexiPage: Application home page
+- Custom Tab: Navigation tab
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Insufficient Privileges" Error**
+   - Ensure the current user has the "User Access Summary App User" permission set assigned
+
+2. **No Users Displayed**
+   - Check if "Include Inactive Users" toggle is set correctly
+   - Verify search filters and profile selections
+
+3. **Export Not Working**
+   - Ensure browser allows file downloads
+   - Check browser console for JavaScript errors
+
+## Development
+
+### Local Development
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm run test:unit
+
+# Deploy to scratch org
+sf org create scratch --definition-file config/project-scratch-def.json --alias userAccessApp
+sf project deploy start --target-org userAccessApp
+```
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and test thoroughly
+4. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+**Developed for enhanced Salesforce user access management and compliance reporting.**

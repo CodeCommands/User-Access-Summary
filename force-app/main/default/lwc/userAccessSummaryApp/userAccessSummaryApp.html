@@ -1,0 +1,259 @@
+<template>
+    <lightning-card title="User Access Summary" icon-name="standard:user">
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading..." size="large"></lightning-spinner>
+        </template>
+        
+        <!-- User Selection View -->
+        <template if:false={showUserDetails}>
+            <div class="slds-card__body slds-card__body_inner">
+                <!-- Search and Filter Section -->
+                <div class="slds-grid slds-gutters slds-m-bottom_medium">
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-input
+                            type="search"
+                            label="Search Users"
+                            placeholder="Search by name, username, or email..."
+                            value={searchTerm}
+                            onchange={handleSearchChange}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            label="Filter by Profile"
+                            placeholder="Select profiles..."
+                            options={profiles}
+                            value={selectedProfiles}
+                            onchange={handleProfileChange}
+                            multi-select>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <div class="slds-form-element slds-m-top_large">
+                            <lightning-input
+                                type="checkbox"
+                                label="Include Inactive Users"
+                                checked={includeInactive}
+                                onchange={handleIncludeInactiveChange}>
+                            </lightning-input>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Users Data Table -->
+                <template if:true={hasUsers}>
+                    <lightning-datatable
+                        key-field="id"
+                        data={users}
+                        columns={userColumns}
+                        onrowaction={handleRowAction}
+                        hide-checkbox-column="true">
+                    </lightning-datatable>
+                    
+                    <!-- Pagination -->
+                    <div class="slds-grid slds-grid_align-spread slds-m-top_medium">
+                        <div class="slds-col">
+                            <lightning-button
+                                label="Previous"
+                                onclick={handlePreviousPage}
+                                disabled={isPreviousDisabled}>
+                            </lightning-button>
+                        </div>
+                        <div class="slds-col">
+                            <span class="slds-text-body_small">{pageInfo}</span>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-button
+                                label="Next"
+                                onclick={handleNextPage}>
+                            </lightning-button>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- No Users Message -->
+                <template if:false={hasUsers}>
+                    <div class="slds-text-align_center slds-m-vertical_large">
+                        <lightning-icon icon-name="standard:user" size="large"></lightning-icon>
+                        <p class="slds-text-heading_small slds-m-top_small">No users found</p>
+                        <p class="slds-text-body_regular">Try adjusting your search criteria or filters.</p>
+                    </div>
+                </template>
+            </div>
+        </template>
+        
+        <!-- User Details View -->
+        <template if:true={showUserDetails}>
+            <div class="slds-card__body slds-card__body_inner">
+                <!-- Header with Back Button and Export -->
+                <div class="slds-grid slds-grid_align-spread slds-m-bottom_medium">
+                    <div class="slds-col">
+                        <lightning-button
+                            label="Back to Users"
+                            icon-name="utility:back"
+                            onclick={handleBackToUsers}>
+                        </lightning-button>
+                    </div>
+                    <div class="slds-col">
+                        <lightning-button
+                            label="Export to Excel"
+                            icon-name="utility:download"
+                            variant="brand"
+                            onclick={handleExportToExcel}>
+                        </lightning-button>
+                    </div>
+                </div>
+                
+                <!-- User Summary Card -->
+                <template if:true={userDetails}>
+                    <lightning-card title="User Information" class="slds-m-bottom_medium">
+                        <div class="slds-card__body slds-card__body_inner">
+                            <div class="slds-grid slds-gutters">
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Name</label>
+                                        <div class="slds-form-element__control">
+                                            <span class="slds-form-element__static">{userDetails.name}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Username</label>
+                                        <div class="slds-form-element__control">
+                                            <span class="slds-form-element__static">{userDetails.username}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Email</label>
+                                        <div class="slds-form-element__control">
+                                            <span class="slds-form-element__static">{userDetails.email}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Profile</label>
+                                        <div class="slds-form-element__control">
+                                            <span class="slds-form-element__static">{userDetails.profileName}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Status</label>
+                                        <div class="slds-form-element__control">
+                                            <lightning-badge 
+                                                label={userDetails.isActive} 
+                                                variant={userDetails.isActive}>
+                                            </lightning-badge>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-3">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label slds-text-title_caps">Manager</label>
+                                        <div class="slds-form-element__control">
+                                            <span class="slds-form-element__static">{userDetails.managerName}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </lightning-card>
+                </template>
+                
+                <!-- Permission Tabs -->
+                <lightning-tabset variant="scoped" active-tab-value={activeTab}>
+                    <!-- User Permissions Tab -->
+                    <lightning-tab label="User Permissions" value="userPermissions">
+                        <template if:true={hasPermissionSets}>
+                            <lightning-datatable
+                                key-field="id"
+                                data={permissionSets}
+                                columns={permissionSetColumns}
+                                hide-checkbox-column="true">
+                            </lightning-datatable>
+                        </template>
+                        <template if:false={hasPermissionSets}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No permission sets assigned to this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                    
+                    <!-- Object Permissions Tab -->
+                    <lightning-tab label="Object Permissions" value="objectPermissions">
+                        <template if:true={hasObjectPermissions}>
+                            <lightning-datatable
+                                key-field="objectName"
+                                data={objectPermissions}
+                                columns={objectPermissionColumns}
+                                hide-checkbox-column="true">
+                            </lightning-datatable>
+                        </template>
+                        <template if:false={hasObjectPermissions}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No object permissions found for this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                    
+                    <!-- Field Permissions Tab -->
+                    <lightning-tab label="Field Permissions" value="fieldPermissions">
+                        <template if:true={hasFieldPermissions}>
+                            <lightning-datatable
+                                key-field="fieldName"
+                                data={fieldPermissions}
+                                columns={fieldPermissionColumns}
+                                hide-checkbox-column="true">
+                            </lightning-datatable>
+                        </template>
+                        <template if:false={hasFieldPermissions}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No field permissions found for this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                    
+                    <!-- Tabs Tab -->
+                    <lightning-tab label="Tabs" value="tabs">
+                        <template if:true={hasTabs}>
+                            <lightning-datatable
+                                key-field="tabName"
+                                data={tabs}
+                                columns={tabColumns}
+                                hide-checkbox-column="true">
+                            </lightning-datatable>
+                        </template>
+                        <template if:false={hasTabs}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No tab information found for this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                    
+                    <!-- Connected Apps Tab -->
+                    <lightning-tab label="Connected Apps" value="connectedApps">
+                        <template if:true={hasConnectedApps}>
+                            <lightning-datatable
+                                key-field="id"
+                                data={connectedApps}
+                                columns={connectedAppColumns}
+                                hide-checkbox-column="true">
+                            </lightning-datatable>
+                        </template>
+                        <template if:false={hasConnectedApps}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No connected apps found for this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                </lightning-tabset>
+            </div>
+        </template>
+    </lightning-card>
+</template>

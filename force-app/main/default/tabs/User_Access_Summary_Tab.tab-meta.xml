@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Tab for User Access Summary application</description>
+    <flexiPage>User_Access_Summary_Home</flexiPage>
+    <label>User Access Summary</label>
+    <motif>Custom9: People</motif>
+</CustomTab>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Home page for User Access Summary application</description>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>userAccessSummaryApp</componentName>
+                <identifier>c_userAccessSummaryApp</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>main</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <masterLabel>User Access Summary Home</masterLabel>
+    <template>
+        <name>flexipage:defaultAppHomeTemplate</name>
+    </template>
+    <type>AppPage</type>
+</FlexiPage>

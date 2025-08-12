@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <brand>
+        <headerColor>#0176D3</headerColor>
+        <logoVersion>1</logoVersion>
+        <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
+        <showAppName>true</showAppName>
+    </brand>
+    <description>User Access Summary App for auditing and managing user permissions</description>
+    <flexiPages>
+        <page>User_Access_Summary_Home</page>
+    </flexiPages>
+    <formFactors>Large</formFactors>
+    <formFactors>Medium</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <label>User Access Summary</label>
+    <navType>Standard</navType>
+    <setupExperience>all</setupExperience>
+    <tabs>
+        <tab>User_Access_Summary_Tab</tab>
+    </tabs>
+    <uiType>Lightning</uiType>
+    <utilityBar>User_Access_Summary_UtilityBar</utilityBar>
+</LightningApp>
