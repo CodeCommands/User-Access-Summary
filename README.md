@@ -32,6 +32,31 @@ A comprehensive Salesforce Lightning application that provides administrators wi
 
 ## Installation
 
+### Option 1: Package Installation (Recommended)
+
+**📦 Install via Package URL:**
+```
+https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+```
+
+**📋 Package Details:**
+- Package Name: UserAccessSummaryApp
+- Version: 1.0.0-2
+- Type: Unlocked Package
+- No installation key required
+
+**🛠️ Alternative: Install via Salesforce CLI**
+```bash
+sf package install --package 04tgL0000004sLCQAY --installation-key-bypass --target-org YOUR_ORG_ALIAS
+```
+
+**📝 Post-Installation Steps:**
+1. Assign the "User_Access_Summary_App_User" permission set to users
+2. Navigate to App Launcher → User Access Summary
+3. Ensure users have the required permissions to view user data
+
+### Option 2: Source Deployment (For Developers)
+
 ### Prerequisites
 - Salesforce org with Lightning Experience enabled
 - System Administrator access
