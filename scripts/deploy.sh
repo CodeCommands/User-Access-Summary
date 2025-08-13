@@ -1,10 +1,26 @@
 #!/bin/bash
 
-# User Access Summary App Deployment Script
-# This script deploys the User Access Summary application to a Salesforce org
+# User Access Summary App - SOURCE DEPLOYMENT Script (For Developers)
+# ⚠️  WARNING: This is for DEVELOPMENT use only!
+# ⚠️  For END USERS: Use package installation instead!
+# 
+# Package Installation URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+# 
+# This script deploys SOURCE CODE directly to a Salesforce org.
+# Use this for:
+# - Development and testing
+# - Contributing to the project
+# - Customizing the source code
+#
+# For regular users, install the package instead!
 
-echo "🚀 User Access Summary App Deployment Script"
-echo "============================================="
+echo "🚀 User Access Summary App - Source Deployment (DEVELOPERS ONLY)"
+echo "=================================================================="
+echo ""
+echo "⚠️  WARNING: This deploys source code directly!"
+echo "⚠️  For regular installation, use the package instead:"
+echo "🔗 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY"
+echo ""
 
 # Check if sf CLI is installed
 if ! command -v sf &> /dev/null; then
