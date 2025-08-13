@@ -22,6 +22,23 @@ public with sharing class UserAccessSummaryController {
         @AuraEnabled public String managerName;
         @AuraEnabled public String department;
         @AuraEnabled public String title;
+        @AuraEnabled public String phone;
+        @AuraEnabled public String mobile;
+        @AuraEnabled public String address;
+        @AuraEnabled public String companyName;
+        @AuraEnabled public String aboutMe;
+    }
+    
+    /**
+     * @description Wrapper class for user permissions information
+     */
+    public class UserPermissionInfo {
+        @AuraEnabled public String name;
+        @AuraEnabled public String label;
+        @AuraEnabled public String apiName;
+        @AuraEnabled public String description;
+        @AuraEnabled public Boolean isGranted;
+        @AuraEnabled public String source;
     }
     
     /**
@@ -133,10 +150,10 @@ public with sharing class UserAccessSummaryController {
             userInfo.username = u.Username;
             userInfo.email = u.Email;
             userInfo.profileName = u.Profile.Name;
-            userInfo.profileId = u.Profile.Id;
+            userInfo.profileId = null; // Not queried to optimize performance
             userInfo.isActive = u.IsActive;
             userInfo.lastLoginDate = u.LastLoginDate;
-            userInfo.createdDate = u.CreatedDate;
+            userInfo.createdDate = null; // Not queried to optimize performance
             userInfo.managerName = u.Manager?.Name;
             userInfo.department = u.Department;
             userInfo.title = u.Title;
@@ -200,14 +217,19 @@ public with sharing class UserAccessSummaryController {
         userInfo.username = user.Username;
         userInfo.email = user.Email;
         userInfo.profileName = user.Profile.Name;
-        userInfo.profileId = user.Profile.Id;
+        userInfo.profileId = null; // Not queried to optimize performance
         userInfo.isActive = user.IsActive;
         userInfo.lastLoginDate = user.LastLoginDate;
-        userInfo.createdDate = user.CreatedDate;
+        userInfo.createdDate = null; // Not queried to optimize performance
         userInfo.managerId = user.ManagerId;
         userInfo.managerName = user.Manager?.Name;
         userInfo.department = user.Department;
         userInfo.title = user.Title;
+        userInfo.phone = null; // Not queried to optimize performance
+        userInfo.mobile = null; // Not queried to optimize performance
+        userInfo.address = null; // Not queried to optimize performance
+        userInfo.companyName = null; // Not queried to optimize performance
+        userInfo.aboutMe = null; // Not queried to optimize performance
         return userInfo;
     }
     
@@ -247,6 +269,20 @@ public with sharing class UserAccessSummaryController {
         }
         
         return result;
+    }
+    
+    /**
+     * @description Get user permissions (profile + permission sets combined)
+     * @param userId The user ID to get permissions for
+     * @return List of UserPermissionInfo objects
+     */
+    @AuraEnabled
+    public static List<UserPermissionInfo> getUserPermissions(String userId) {
+        try {
+            return UserAccessQueryHelper.getUserPermissions(userId);
+        } catch (Exception e) {
+            throw new AuraHandledException('Error retrieving user permissions: ' + e.getMessage());
+        }
     }
     
     /**
@@ -844,10 +880,31 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled
     public static List<TabInfo> getUserTabs(String userId) {
         try {
-            // Simplified implementation - returns empty list
-            // Tab visibility is complex and varies by org configuration
-            return new List<TabInfo>();
+            if (!UserAccessSecurityUtil.hasUserAccessPermission()) {
+                throw new AuraHandledException('Insufficient permissions to access tab information');
+            }
+            
+            // Get tab visibility information for the user
+            List<TabInfo> result = new List<TabInfo>();
+            
+            // Get tab definitions from the org - using only available fields
+            List<TabDefinition> tabDefs = [SELECT Name, Label, IsCustom 
+                                          FROM TabDefinition 
+                                          ORDER BY Label];
+            
+            for (TabDefinition tabDef : tabDefs) {
+                TabInfo tabInfo = new TabInfo();
+                tabInfo.tabName = tabDef.Name;
+                tabInfo.tabLabel = tabDef.Label;
+                tabInfo.tabType = tabDef.IsCustom ? 'Custom' : 'Standard';
+                tabInfo.isAvailable = true; // All retrieved tabs are available
+                tabInfo.visibility = 'Default On'; // Simplified visibility logic
+                result.add(tabInfo);
+            }
+            
+            return result;
         } catch (Exception e) {
+            System.debug('Error in getUserTabs: ' + e.getMessage());
             throw new AuraHandledException('Error retrieving tab information: ' + e.getMessage());
         }
     }

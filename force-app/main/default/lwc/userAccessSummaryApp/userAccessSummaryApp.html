@@ -100,100 +100,339 @@
                             label="Export to Excel"
                             icon-name="utility:download"
                             variant="brand"
-                            onclick={handleExportToExcel}>
+                            onclick={handleExportToExcel}
+                            disabled={isExporting}>
                         </lightning-button>
                     </div>
                 </div>
                 
+                <!-- Export Progress Bar -->
+                <template if:true={isExporting}>
+                    <div class="slds-card slds-m-bottom_medium">
+                        <div class="slds-card__header slds-grid">
+                            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name="utility:download" size="small"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <h2 class="slds-card__header-title">
+                                        <span class="slds-text-heading_small">Exporting to Excel</span>
+                                    </h2>
+                                </div>
+                            </header>
+                        </div>
+                        <div class="slds-card__body slds-card__body_inner">
+                            <div class="slds-m-bottom_small">
+                                <lightning-progress-bar 
+                                    value={exportProgress} 
+                                    size="large"
+                                    variant="circular">
+                                </lightning-progress-bar>
+                            </div>
+                            <div class="slds-text-align_center">
+                                <p class="slds-text-body_regular slds-m-bottom_x-small">{exportStatus}</p>
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    {exportProgress}% Complete - Processing user permissions and access data...
+                                </p>
+                            </div>
+                            <!-- Export Steps -->
+                            <template if:true={exportSteps}>
+                                <div class="slds-m-top_medium">
+                                    <template for:each={exportSteps} for:item="step">
+                                        <div key={step.key} class="slds-grid slds-grid_align-spread slds-p-vertical_xx-small">
+                                            <div class="slds-col">
+                                                <span class="slds-text-body_small">{step.label}</span>
+                                            </div>
+                                            <div class="slds-col slds-no-flex">
+                                                <template if:true={step.completed}>
+                                                    <lightning-icon 
+                                                        icon-name="utility:check" 
+                                                        size="x-small" 
+                                                        variant="success">
+                                                    </lightning-icon>
+                                                </template>
+                                                <template if:true={step.current}>
+                                                    <lightning-spinner 
+                                                        alternative-text="Processing" 
+                                                        size="x-small">
+                                                    </lightning-spinner>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                
                 <!-- User Summary Card -->
                 <template if:true={userDetails}>
-                    <lightning-card title="User Information" class="slds-m-bottom_medium">
+                    <div class="slds-card slds-m-bottom_medium">
+                        <div class="slds-card__header slds-grid">
+                            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                <div class="slds-media__body">
+                                    <h2 class="slds-card__header-title">
+                                        <span class="slds-text-heading_medium">User Details</span>
+                                    </h2>
+                                </div>
+                            </header>
+                        </div>
                         <div class="slds-card__body slds-card__body_inner">
-                            <div class="slds-grid slds-gutters slds-wrap">
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Name</label>
-                                        <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static slds-truncate">{userDetails.name}</span>
+                            <!-- User Details Grid -->
+                            <div class="slds-form slds-form_stacked">
+                                <div class="slds-grid slds-gutters slds-wrap">
+                                    <!-- Left Column -->
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Name</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.name} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Title</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.title} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Email</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.email} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Address</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.address} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element">
+                                            <label class="slds-form-element__label slds-text-body_small">About Me</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-textarea 
+                                                    value={userDetails.aboutMe} 
+                                                    variant="label-hidden" 
+                                                    readonly="true"
+                                                    rows="3">
+                                                </lightning-textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Right Column -->
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Manager</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.managerName} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Company Name</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.companyName} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element slds-m-bottom_medium">
+                                            <label class="slds-form-element__label slds-text-body_small">Phone</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.phone} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                        <div class="slds-form-element">
+                                            <label class="slds-form-element__label slds-text-body_small">Mobile</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-input 
+                                                    value={userDetails.mobile} 
+                                                    variant="label-hidden" 
+                                                    readonly="true">
+                                                </lightning-input>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Username</label>
-                                        <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static slds-truncate">{userDetails.username}</span>
+                            </div>
+                            
+                            <!-- Additional User Summary Info -->
+                            <div class="slds-border_top slds-p-top_medium slds-m-top_medium">
+                                <div class="slds-grid slds-gutters slds-wrap">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <div class="slds-form-element">
+                                            <label class="slds-form-element__label slds-text-title_caps">Username</label>
+                                            <div class="slds-form-element__control">
+                                                <span class="slds-form-element__static slds-truncate">{userDetails.username}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Email</label>
-                                        <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static slds-truncate">{userDetails.email}</span>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <div class="slds-form-element">
+                                            <label class="slds-form-element__label slds-text-title_caps">Profile</label>
+                                            <div class="slds-form-element__control">
+                                                <span class="slds-form-element__static slds-truncate">{userDetails.profileName}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Profile</label>
-                                        <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static slds-truncate">{userDetails.profileName}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-3">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Status</label>
-                                        <div class="slds-form-element__control">
-                                            <lightning-badge 
-                                                label={userDetails.isActive} 
-                                                variant={userDetails.isActive}>
-                                            </lightning-badge>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-3">
-                                    <div class="slds-form-element">
-                                        <label class="slds-form-element__label slds-text-title_caps">Manager</label>
-                                        <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static">{userDetails.managerName}</span>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <div class="slds-form-element">
+                                            <label class="slds-form-element__label slds-text-title_caps">Status</label>
+                                            <div class="slds-form-element__control">
+                                                <lightning-badge 
+                                                    label={userDetails.isActive} 
+                                                    variant={userDetails.isActive}>
+                                                </lightning-badge>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </lightning-card>
+                    </div>
                 </template>
                 
-                <!-- Permission Tabs -->
-                <lightning-tabset variant="scoped" active-tab-value={activeTab}>
+                <!-- User Access Summary Section -->
+                <div class="slds-card slds-m-bottom_medium">
+                    <div class="slds-card__header slds-grid">
+                        <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                            <div class="slds-media__body">
+                                <h2 class="slds-card__header-title">
+                                    <span class="slds-text-heading_medium">User Access Summary</span>
+                                </h2>
+                                <p class="slds-text-body_small">See the permissions the user is assigned and the record access features the user is added to.</p>
+                            </div>
+                        </header>
+                    </div>
+                    <div class="slds-card__body slds-card__body_inner">
+                        <!-- Permission Tabs -->
+                        <lightning-tabset variant="scoped" active-tab-value={activeTab}>
                     <!-- User Permissions Tab -->
                     <lightning-tab label="User Permissions" value="userPermissions">
-                        <template if:true={hasPermissionSets}>
-                            <lightning-datatable
-                                key-field="id"
-                                data={permissionSets}
-                                columns={permissionSetColumns}
-                                hide-checkbox-column="true">
-                            </lightning-datatable>
-                        </template>
-                        <template if:false={hasPermissionSets}>
-                            <div class="slds-text-align_center slds-m-vertical_large">
-                                <p class="slds-text-body_regular">No permission sets assigned to this user.</p>
+                        <template if:true={hasUserPermissions}>
+                            <div class="slds-scrollable" style="height: 400px; border: 1px solid #ddd;">
+                                <lightning-datatable
+                                    key-field="apiName"
+                                    data={userPermissions}
+                                    columns={userPermissionColumns}
+                                    hide-checkbox-column="true">
+                                </lightning-datatable>
                             </div>
                         </template>
+                        <template if:false={hasUserPermissions}>
+                            <div class="slds-text-align_center slds-m-vertical_large">
+                                <p class="slds-text-body_regular">No user permissions found for this user.</p>
+                            </div>
+                        </template>
+                    </lightning-tab>
+                    
+                    <!-- Permission Sets Tab -->
+                    <lightning-tab label="Permission Sets" value="permissionSets">
+                        <!-- Sub-tabset for Permission Sets -->
+                        <lightning-tabset variant="standard" active-tab-value="permissionSetAssignments">
+                            <!-- Permission Set Group Assignments Sub-tab -->
+                            <lightning-tab label="Permission Set Group Assignments" value="permissionSetGroups">
+                                <template if:true={hasPermissionSetGroups}>
+                                    <div class="slds-scrollable" style="height: 300px; border: 1px solid #ddd;">
+                                        <lightning-datatable
+                                            key-field="id"
+                                            data={permissionSetGroups}
+                                            columns={permissionSetGroupColumns}
+                                            hide-checkbox-column="true"
+                                            show-row-number-column="false">
+                                        </lightning-datatable>
+                                    </div>
+                                </template>
+                                <template if:false={hasPermissionSetGroups}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No permission set groups assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                            
+                            <!-- Permission Set Assignments Sub-tab -->
+                            <lightning-tab label="Permission Set Assignments" value="permissionSetAssignments">
+                                <template if:true={hasRegularPermissionSets}>
+                                    <div class="slds-scrollable" style="height: 300px; border: 1px solid #ddd;">
+                                        <lightning-datatable
+                                            key-field="id"
+                                            data={regularPermissionSets}
+                                            columns={permissionSetColumns}
+                                            hide-checkbox-column="true"
+                                            show-row-number-column="false">
+                                        </lightning-datatable>
+                                    </div>
+                                </template>
+                                <template if:false={hasRegularPermissionSets}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No permission sets assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                            
+                            <!-- Permission Set Assignments: Activation Required Sub-tab -->
+                            <lightning-tab label="Permission Set Assignments: Activation Required" value="sessionPermissionSets">
+                                <template if:true={hasSessionPermissionSets}>
+                                    <div class="slds-m-bottom_small">
+                                        <lightning-formatted-text value="These permission sets require user activation to take effect."></lightning-formatted-text>
+                                    </div>
+                                    <div class="slds-scrollable" style="height: 300px; border: 1px solid #ddd;">
+                                        <lightning-datatable
+                                            key-field="id"
+                                            data={sessionPermissionSets}
+                                            columns={sessionPermissionSetColumns}
+                                            hide-checkbox-column="true"
+                                            show-row-number-column="false">
+                                        </lightning-datatable>
+                                    </div>
+                                </template>
+                                <template if:false={hasSessionPermissionSets}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No session-based permission sets assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                        </lightning-tabset>
                     </lightning-tab>
                     
                     <!-- Object Permissions Tab -->
                     <lightning-tab label="Object Permissions" value="objectPermissions">
                         <template if:true={hasObjectPermissions}>
-                            <lightning-datatable
-                                key-field="objectName"
-                                data={objectPermissions}
-                                columns={objectPermissionColumns}
-                                hide-checkbox-column="true">
-                            </lightning-datatable>
+                            <div class="slds-scrollable" style="height: 400px; border: 1px solid #ddd;">
+                                <lightning-datatable
+                                    key-field="objectName"
+                                    data={objectPermissions}
+                                    columns={objectPermissionColumns}
+                                    hide-checkbox-column="true">
+                                </lightning-datatable>
+                            </div>
                         </template>
                         <template if:false={hasObjectPermissions}>
                             <div class="slds-text-align_center slds-m-vertical_large">
@@ -240,13 +479,15 @@
                                     <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
                                         All fields for this object with their current access permissions for the selected user.
                                     </p>
-                                    <lightning-datatable
-                                        key-field="fieldName"
-                                        data={objectFieldPermissions}
-                                        columns={fieldPermissionColumns}
-                                        hide-checkbox-column="true"
-                                        show-row-number-column="false">
-                                    </lightning-datatable>
+                                    <div class="slds-scrollable" style="height: 400px; border: 1px solid #d8dde6;">
+                                        <lightning-datatable
+                                            key-field="fieldName"
+                                            data={objectFieldPermissions}
+                                            columns={fieldPermissionColumns}
+                                            hide-checkbox-column="true"
+                                            show-row-number-column="false">
+                                        </lightning-datatable>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -269,13 +510,15 @@
                                             <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
                                                 Field permissions from permission sets. Select an object above for complete field analysis.
                                             </p>
-                                            <lightning-datatable
-                                                key-field="fieldName"
-                                                data={fieldPermissions}
-                                                columns={generalFieldPermissionColumns}
-                                                hide-checkbox-column="true"
-                                                show-row-number-column="false">
-                                            </lightning-datatable>
+                                            <div class="slds-scrollable" style="height: 300px; border: 1px solid #d8dde6;">
+                                                <lightning-datatable
+                                                    key-field="fieldName"
+                                                    data={fieldPermissions}
+                                                    columns={generalFieldPermissionColumns}
+                                                    hide-checkbox-column="true"
+                                                    show-row-number-column="false">
+                                                </lightning-datatable>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -314,12 +557,14 @@
                     <!-- Tabs Tab -->
                     <lightning-tab label="Tabs" value="tabs">
                         <template if:true={hasTabs}>
-                            <lightning-datatable
-                                key-field="tabName"
-                                data={tabs}
-                                columns={tabColumns}
-                                hide-checkbox-column="true">
-                            </lightning-datatable>
+                            <div class="slds-scrollable" style="height: 300px; border: 1px solid #d8dde6;">
+                                <lightning-datatable
+                                    key-field="tabName"
+                                    data={tabs}
+                                    columns={tabColumns}
+                                    hide-checkbox-column="true">
+                                </lightning-datatable>
+                            </div>
                         </template>
                         <template if:false={hasTabs}>
                             <div class="slds-text-align_center slds-m-vertical_large">
@@ -331,12 +576,14 @@
                     <!-- Connected Apps Tab -->
                     <lightning-tab label="Connected Apps" value="connectedApps">
                         <template if:true={hasConnectedApps}>
-                            <lightning-datatable
-                                key-field="id"
-                                data={connectedApps}
-                                columns={connectedAppColumns}
-                                hide-checkbox-column="true">
-                            </lightning-datatable>
+                            <div class="slds-scrollable" style="height: 300px; border: 1px solid #d8dde6;">
+                                <lightning-datatable
+                                    key-field="id"
+                                    data={connectedApps}
+                                    columns={connectedAppColumns}
+                                    hide-checkbox-column="true">
+                                </lightning-datatable>
+                            </div>
                         </template>
                         <template if:false={hasConnectedApps}>
                             <div class="slds-text-align_center slds-m-vertical_large">
@@ -345,6 +592,82 @@
                         </template>
                     </lightning-tab>
                 </lightning-tabset>
+                    </div>
+                </div>
+                
+                <!-- Permission Sets Section -->
+                <div class="slds-card">
+                    <div class="slds-card__header slds-grid">
+                        <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                            <div class="slds-media__body">
+                                <h2 class="slds-card__header-title">
+                                    <span class="slds-text-heading_medium">Permission Sets</span>
+                                </h2>
+                                <p class="slds-text-body_small">Update this user's assigned permission sets and permission set groups. <lightning-formatted-url value="https://help.salesforce.com" label="Learn More in Salesforce Help"></lightning-formatted-url></p>
+                            </div>
+                        </header>
+                    </div>
+                    <div class="slds-card__body slds-card__body_inner">
+                        <lightning-tabset variant="standard" active-tab-value="permissionSetAssignments">
+                            <!-- Permission Set Group Assignments Tab -->
+                            <lightning-tab label="Permission Set Group Assignments" value="permissionSetGroups">
+                                <template if:true={hasPermissionSetGroups}>
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={permissionSetGroups}
+                                        columns={permissionSetGroupColumns}
+                                        hide-checkbox-column="true"
+                                        show-row-number-column="false">
+                                    </lightning-datatable>
+                                </template>
+                                <template if:false={hasPermissionSetGroups}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No permission set groups assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                            
+                            <!-- Permission Set Assignments Tab -->
+                            <lightning-tab label="Permission Set Assignments" value="permissionSetAssignments">
+                                <template if:true={hasRegularPermissionSets}>
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={regularPermissionSets}
+                                        columns={permissionSetColumns}
+                                        hide-checkbox-column="true"
+                                        show-row-number-column="false">
+                                    </lightning-datatable>
+                                </template>
+                                <template if:false={hasRegularPermissionSets}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No permission sets assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                            
+                            <!-- Permission Set Assignments: Activation Required Tab -->
+                            <lightning-tab label="Permission Set Assignments: Activation Required" value="sessionPermissionSets">
+                                <template if:true={hasSessionPermissionSets}>
+                                    <div class="slds-m-bottom_small">
+                                        <lightning-formatted-text value="These permission sets require user activation to take effect."></lightning-formatted-text>
+                                    </div>
+                                    <lightning-datatable
+                                        key-field="id"
+                                        data={sessionPermissionSets}
+                                        columns={sessionPermissionSetColumns}
+                                        hide-checkbox-column="true"
+                                        show-row-number-column="false">
+                                    </lightning-datatable>
+                                </template>
+                                <template if:false={hasSessionPermissionSets}>
+                                    <div class="slds-text-align_center slds-m-vertical_large">
+                                        <p class="slds-text-body_regular">No session-based permission sets assigned to this user.</p>
+                                    </div>
+                                </template>
+                            </lightning-tab>
+                        </lightning-tabset>
+                    </div>
+                </div>
             </div>
         </template>
     </lightning-card>

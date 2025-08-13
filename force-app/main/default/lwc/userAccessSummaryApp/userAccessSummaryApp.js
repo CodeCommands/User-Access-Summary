@@ -5,6 +5,7 @@ import sheetjs from '@salesforce/resourceUrl/sheetjs';
 import getUsers from '@salesforce/apex/UserAccessSummaryController.getUsers';
 import getProfiles from '@salesforce/apex/UserAccessSummaryController.getProfiles';
 import getUserDetails from '@salesforce/apex/UserAccessSummaryController.getUserDetails';
+import getUserPermissions from '@salesforce/apex/UserAccessSummaryController.getUserPermissions';
 import getUserPermissionSets from '@salesforce/apex/UserAccessSummaryController.getUserPermissionSets';
 import getUserObjectPermissions from '@salesforce/apex/UserAccessSummaryController.getUserObjectPermissions';
 import getUserFieldPermissions from '@salesforce/apex/UserAccessSummaryController.getUserFieldPermissions';
@@ -19,6 +20,7 @@ export default class UserAccessSummaryApp extends LightningElement {
     @track profiles = [];
     @track selectedUser = null;
     @track userDetails = null;
+    @track userPermissions = [];
     @track permissionSets = [];
     @track objectPermissions = [];
     @track fieldPermissions = [];
@@ -35,6 +37,12 @@ export default class UserAccessSummaryApp extends LightningElement {
     @track showUserDetails = false;
     @track activeTab = 'userPermissions';
     
+    // Export progress tracking
+    @track isExporting = false;
+    @track exportProgress = 0;
+    @track exportStatus = '';
+    @track exportSteps = [];
+    
     // Pagination
     @track currentPage = 1;
     @track pageSize = 50;
@@ -46,6 +54,7 @@ export default class UserAccessSummaryApp extends LightningElement {
     // Tab options
     tabOptions = [
         { label: 'User Permissions', value: 'userPermissions' },
+        { label: 'Permission Sets', value: 'permissionSets' },
         { label: 'Object Permissions', value: 'objectPermissions' },
         { label: 'Field Permissions', value: 'fieldPermissions' },
         { label: 'Tabs', value: 'tabs' },
@@ -90,13 +99,38 @@ export default class UserAccessSummaryApp extends LightningElement {
         }
     ];
     
+    // Columns for user permissions datatable
+    userPermissionColumns = [
+        { label: 'Label', fieldName: 'label', type: 'text' },
+        { label: 'API Name', fieldName: 'apiName', type: 'text' },
+        { label: 'Description', fieldName: 'description', type: 'text' },
+        { label: 'Source', fieldName: 'source', type: 'text' }
+    ];
+    
     // Columns for permission sets datatable
     permissionSetColumns = [
         { label: 'Label', fieldName: 'label', type: 'text' },
         { label: 'API Name', fieldName: 'name', type: 'text' },
         { label: 'Description', fieldName: 'description', type: 'text' },
         { label: 'Type', fieldName: 'type', type: 'text' },
-        { label: 'Source', fieldName: 'source', type: 'text' }
+        { label: 'Date Assigned', fieldName: 'assignedDate', type: 'date-local' }
+    ];
+    
+    // Columns for permission set groups datatable
+    permissionSetGroupColumns = [
+        { label: 'Label', fieldName: 'label', type: 'text' },
+        { label: 'API Name', fieldName: 'name', type: 'text' },
+        { label: 'Description', fieldName: 'description', type: 'text' },
+        { label: 'Date Assigned', fieldName: 'assignedDate', type: 'date-local' }
+    ];
+    
+    // Columns for session permission sets datatable (activation required)
+    sessionPermissionSetColumns = [
+        { label: 'Label', fieldName: 'label', type: 'text' },
+        { label: 'API Name', fieldName: 'name', type: 'text' },
+        { label: 'Description', fieldName: 'description', type: 'text' },
+        { label: 'Date Assigned', fieldName: 'assignedDate', type: 'date-local' },
+        { label: 'Expires On', fieldName: 'expirationDate', type: 'date-local' }
     ];
     
     // Columns for object permissions datatable
@@ -348,6 +382,7 @@ export default class UserAccessSummaryApp extends LightningElement {
             }, 200); // Increased delay to let other operations complete first
             
             // Load tabs and connected apps (lightweight)
+            await this.loadUserPermissions(userId);
             await this.loadTabs(userId);
             await this.loadConnectedApps(userId);
             
@@ -480,11 +515,19 @@ export default class UserAccessSummaryApp extends LightningElement {
             }
             
             console.log('Export: Loading field permissions for', uniqueObjects.size, 'objects');
+            const objectArray = Array.from(uniqueObjects);
             
             // Process objects one by one to avoid overwhelming the server
-            for (const objectName of uniqueObjects) {
+            for (let i = 0; i < objectArray.length; i++) {
+                const objectName = objectArray[i];
                 try {
                     console.log(`Export: Loading field permissions for object: ${objectName}`);
+                    
+                    // Update progress during field permission loading
+                    if (this.isExporting) {
+                        const objectProgress = 40 + (i / objectArray.length) * 20; // Between 40% and 60%
+                        this.updateExportProgress(Math.round(objectProgress), `Loading fields for ${objectName}...`);
+                    }
                     
                     // Add a small delay to avoid rapid-fire requests that might cause issues
                     if (allFieldPermissions.length > 0) {
@@ -659,6 +702,26 @@ export default class UserAccessSummaryApp extends LightningElement {
         this.connectedApps = await getUserConnectedApps({ userId });
     }
     
+    async loadUserPermissions(userId) {
+        try {
+            console.log('Loading user permissions for userId:', userId);
+            const result = await getUserPermissions({ userId });
+            this.userPermissions = result || [];
+            console.log('Loaded user permissions:', this.userPermissions.length, 'permissions');
+            
+            if (this.userPermissions.length > 0) {
+                console.log('Sample user permission:', this.userPermissions[0]);
+                this.showToast('Success', `Loaded ${this.userPermissions.length} user permissions`, 'success');
+            } else {
+                console.log('No user permissions found for this user');
+            }
+        } catch (error) {
+            console.error('Error loading user permissions:', error);
+            this.showToast('Error', 'Error loading user permissions: ' + error.message, 'error');
+            this.userPermissions = [];
+        }
+    }
+    
     handleTabChange(event) {
         this.activeTab = event.target.value;
     }
@@ -677,27 +740,84 @@ export default class UserAccessSummaryApp extends LightningElement {
         }
         
         try {
-            this.isLoading = true;
+            this.startExportProgress();
             
             if (this.xlsxLoaded && window.XLSX) {
                 // Use SheetJS for true Excel export with multiple sheets
-                this.generateExcelWithSheetJS();
+                await this.generateExcelWithSheetJS();
             } else {
                 // Fallback to CSV export
-                this.showToast('Info', 'Excel library not loaded, exporting as CSV files...', 'info');
-                this.generateMultiSheetExcelExport();
+                this.updateExportProgress(10, 'Excel library not loaded, preparing CSV export...');
+                await this.generateMultiSheetExcelExport();
             }
             
         } catch (error) {
             this.showToast('Error', 'Error exporting file: ' + error.message, 'error');
         } finally {
-            this.isLoading = false;
+            this.finishExportProgress();
         }
+    }
+    
+    startExportProgress() {
+        this.isExporting = true;
+        this.exportProgress = 0;
+        this.exportStatus = 'Initializing export...';
+        this.exportSteps = [
+            { key: 'init', label: 'Initializing export', completed: false, current: true },
+            { key: 'user', label: 'Loading user permissions', completed: false, current: false },
+            { key: 'objects', label: 'Processing object permissions', completed: false, current: false },
+            { key: 'fields', label: 'Loading field permissions', completed: false, current: false },
+            { key: 'excel', label: 'Generating Excel file', completed: false, current: false },
+            { key: 'download', label: 'Preparing download', completed: false, current: false }
+        ];
+    }
+    
+    updateExportProgress(percentage, status) {
+        this.exportProgress = percentage;
+        this.exportStatus = status;
+        
+        // Update step status based on progress
+        if (percentage >= 5) this.completeExportStep('init');
+        if (percentage >= 20) this.completeExportStep('user');
+        if (percentage >= 40) this.completeExportStep('objects');
+        if (percentage >= 70) this.completeExportStep('fields');
+        if (percentage >= 90) this.completeExportStep('excel');
+        if (percentage >= 100) this.completeExportStep('download');
+    }
+    
+    completeExportStep(stepKey) {
+        this.exportSteps = this.exportSteps.map(step => {
+            if (step.key === stepKey) {
+                return { ...step, completed: true, current: false };
+            } else if (step.completed) {
+                return step;
+            } else if (!step.completed && !step.current) {
+                // Find the next step to mark as current
+                const currentIndex = this.exportSteps.findIndex(s => s.key === stepKey);
+                const thisIndex = this.exportSteps.findIndex(s => s.key === step.key);
+                return { ...step, current: thisIndex === currentIndex + 1 };
+            }
+            return { ...step, current: false };
+        });
+    }
+    
+    finishExportProgress() {
+        this.exportProgress = 100;
+        this.exportStatus = 'Export completed!';
+        this.exportSteps = this.exportSteps.map(step => ({ ...step, completed: true, current: false }));
+        
+        // Hide progress after a short delay
+        setTimeout(() => {
+            this.isExporting = false;
+            this.exportProgress = 0;
+            this.exportStatus = '';
+            this.exportSteps = [];
+        }, 2000);
     }
 
     async generateExcelWithSheetJS() {
         try {
-            this.showToast('Info', 'Preparing Excel export with comprehensive field permissions from all objects...', 'info');
+            this.updateExportProgress(5, 'Preparing Excel export...');
             
             // Ensure we have a valid user ID for the export
             const exportUserId = this.selectedUser; // selectedUser is just the user ID string
@@ -708,54 +828,72 @@ export default class UserAccessSummaryApp extends LightningElement {
             }
             
             console.log('Export: Using user ID:', exportUserId);
+            this.updateExportProgress(10, 'Loading user permissions...');
             
             // Always load field permissions for ALL objects for comprehensive export
             let exportFieldPermissions = [];
             
             if (this.objectPermissions && this.objectPermissions.length > 0) {
                 console.log('Loading field permissions for all objects for comprehensive export...');
+                this.updateExportProgress(20, 'Processing object permissions...');
                 console.log('Export: selectedUser before loadFieldPermissionsForAllObjects:', this.selectedUser);
                 console.log('Export: Available user ID:', exportUserId);
+                
+                this.updateExportProgress(30, 'Loading field permissions for all objects...');
                 exportFieldPermissions = await this.loadFieldPermissionsForAllObjects(exportUserId);
                 console.log('Loaded field permissions for all objects:', exportFieldPermissions.length);
+                this.updateExportProgress(60, `Loaded ${exportFieldPermissions.length} field permissions`);
             } 
             // Fallback to general field permissions if no object permissions
             else if (this.fieldPermissions && this.fieldPermissions.length > 0) {
                 exportFieldPermissions = [...this.fieldPermissions];
                 console.log('Using general field permissions for export:', exportFieldPermissions.length);
+                this.updateExportProgress(40, `Using ${exportFieldPermissions.length} general field permissions`);
             }
             // Last resort: try to load fresh comprehensive data
             else {
                 try {
+                    this.updateExportProgress(30, 'Loading comprehensive field permissions...');
                     exportFieldPermissions = await this.loadFullFieldPermissionsForExport(this.selectedUser.id);
                     console.log('Loaded fresh comprehensive field permissions for export:', exportFieldPermissions.length);
+                    this.updateExportProgress(50, `Loaded ${exportFieldPermissions.length} comprehensive permissions`);
                 } catch (error) {
                     console.log('Fresh load failed, using empty array for export');
                     exportFieldPermissions = [];
+                    this.updateExportProgress(35, 'Using available permissions data');
                 }
             }
             
             console.log('Final comprehensive field permissions for export:', exportFieldPermissions.length);
+            this.updateExportProgress(70, 'Generating Excel workbook...');
             
             // Create a new workbook
             const workbook = window.XLSX.utils.book_new();
             
             // Generate all sheets data with comprehensive field permissions from all objects
+            this.updateExportProgress(75, 'Preparing data sheets...');
             const sheets = this.generateAllSheetsWithFullData(exportFieldPermissions);
             console.log('Generated sheets:', sheets.map(s => s.name));
             
             // Add each sheet to the workbook using SheetJS best practices
-            sheets.forEach(sheet => {
+            this.updateExportProgress(80, 'Creating Excel sheets...');
+            sheets.forEach((sheet, index) => {
                 console.log(`Adding sheet "${sheet.name}" with ${sheet.data.length} rows`);
                 // Use aoa_to_sheet as recommended by SheetJS for array-of-arrays
                 const worksheet = window.XLSX.utils.aoa_to_sheet(sheet.data);
                 window.XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+                
+                // Update progress for each sheet
+                const sheetProgress = 80 + (index + 1) / sheets.length * 10;
+                this.updateExportProgress(Math.round(sheetProgress), `Created sheet: ${sheet.name}`);
             });
             
             // Use XLSX.writeFile as recommended by SheetJS documentation
+            this.updateExportProgress(95, 'Preparing file download...');
             const filename = `User_Access_Summary_${this.selectedUser.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
             window.XLSX.writeFile(workbook, filename);
             
+            this.updateExportProgress(100, 'Excel file exported successfully!');
             this.showToast('Success', 'Excel file exported successfully with comprehensive field permissions!', 'success');
             
         } catch (error) {
@@ -1267,6 +1405,10 @@ export default class UserAccessSummaryApp extends LightningElement {
         return this.users && this.users.length > 0;
     }
     
+    get hasUserPermissions() {
+        return this.userPermissions && this.userPermissions.length > 0;
+    }
+    
     get hasPermissionSets() {
         return this.permissionSets && this.permissionSets.length > 0;
     }
@@ -1287,8 +1429,41 @@ export default class UserAccessSummaryApp extends LightningElement {
         return this.connectedApps && this.connectedApps.length > 0;
     }
     
+    // Permission Set Category Getters
+    get permissionSetGroups() {
+        return this.permissionSets ? this.permissionSets.filter(ps => ps.type === 'Group') : [];
+    }
+    
+    get regularPermissionSets() {
+        return this.permissionSets ? this.permissionSets.filter(ps => ps.type === 'Regular') : [];
+    }
+    
+    get sessionPermissionSets() {
+        return this.permissionSets ? this.permissionSets.filter(ps => ps.type === 'Session') : [];
+    }
+    
+    get hasPermissionSetGroups() {
+        return this.permissionSetGroups.length > 0;
+    }
+    
+    get hasRegularPermissionSets() {
+        return this.regularPermissionSets.length > 0;
+    }
+    
+    get hasSessionPermissionSets() {
+        return this.sessionPermissionSets.length > 0;
+    }
+    
+    get hasAnyPermissionSets() {
+        return this.hasPermissionSets || this.hasPermissionSetGroups || this.hasSessionPermissionSets;
+    }
+    
     get showUserPermissions() {
         return this.activeTab === 'userPermissions';
+    }
+    
+    get showPermissionSets() {
+        return this.activeTab === 'permissionSets';
     }
     
     get showObjectPermissions() {
