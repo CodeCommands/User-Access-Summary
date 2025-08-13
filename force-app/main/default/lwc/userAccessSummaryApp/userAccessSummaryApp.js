@@ -934,7 +934,7 @@ export default class UserAccessSummaryApp extends LightningElement {
             // Sort objects alphabetically and add their field permissions
             Object.keys(groupedByObject).sort().forEach(objectName => {
                 // Add object header
-                data.push([`${objectName} Object`, '', '', '', '']);
+                data.push([`--- ${objectName} Object ---`, '', '', '', '']);
                 
                 // Sort fields within object
                 groupedByObject[objectName].sort((a, b) => 
@@ -943,12 +943,20 @@ export default class UserAccessSummaryApp extends LightningElement {
                 
                 // Add fields for this object
                 groupedByObject[objectName].forEach(field => {
+                    // Determine the actual permission source
+                    let permissionSource = 'Profile Access';
+                    if (field.permissionSetName && field.permissionSetName !== 'Default (Profile)') {
+                        permissionSource = field.permissionSetName;
+                    } else if (field.source && field.source !== 'Default (Profile)') {
+                        permissionSource = field.source;
+                    }
+                    
                     data.push([
                         objectName,
                         field.fieldName || '',
                         (field.hasRead !== undefined ? field.hasRead : field.canRead) ? 'Yes' : 'No',
                         (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) ? 'Yes' : 'No',
-                        field.permissionSetName || field.source || 'Profile Access'
+                        permissionSource
                     ]);
                 });
                 
@@ -958,61 +966,39 @@ export default class UserAccessSummaryApp extends LightningElement {
         } else {
             // Fallback: show currently selected object if no comprehensive data
             if (this.objectFieldPermissions && this.objectFieldPermissions.length > 0) {
-                data.push([`${this.selectedObject} Object (Current Selection)`, '', '', '', '']);
+                data.push([`--- ${this.selectedObject} Object (Current Selection) ---`, '', '', '', '']);
                 
                 const sortedFields = [...this.objectFieldPermissions].sort((a, b) => 
                     (a.fieldName || '').localeCompare(b.fieldName || '')
                 );
                 
                 sortedFields.forEach(field => {
+                    // Determine the actual permission source
+                    let permissionSource = 'Profile Access';
+                    if (field.permissionSetName && field.permissionSetName !== 'Default (Profile)') {
+                        permissionSource = field.permissionSetName;
+                    } else if (field.source && field.source !== 'Default (Profile)') {
+                        permissionSource = field.source;
+                    }
+                    
                     data.push([
                         field.objectName || this.selectedObject || '',
                         field.fieldName || '',
                         (field.hasRead !== undefined ? field.hasRead : field.canRead) ? 'Yes' : 'No',
                         (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) ? 'Yes' : 'No',
-                        field.permissionSetName || field.source || 'Profile Access'
+                        permissionSource
                     ]);
                 });
             } else {
                 data.push(['No field permissions data available', '', '', '', '']);
-                data.push(['This may indicate that field access comes from the user profile', '', '', '', '']);
+                data.push(['This indicates that field access comes from the user profile', '', '', '', '']);
                 data.push(['rather than explicit permission set field permissions.', '', '', '', '']);
             }
         }
         
         return data;
     }
-                
-                // Sort fields within object
-                groupedByObject[objectName].sort((a, b) => a.fieldName.localeCompare(b.fieldName));
-                
-                // Add fields for this object
-                groupedByObject[objectName].forEach(field => {
-                    data.push([
-                        field.objectName,
-                        field.fieldName,
-                        field.hasRead ? 'Yes' : 'No',
-                        field.hasEdit ? 'Yes' : 'No',
-                        field.permissionSources.join(', ')
-                    ]);
-                });
-                
-                // Add spacing between objects
-                data.push(['', '', '', '', '']);
-            });
-        }
-        
-        if (data.length <= 3) { // Only headers, no actual data
-            data.push(['No field permissions data available due to system limits.']);
-            data.push(['']);
-            data.push(['Note: Field permissions are limited to prevent CPU timeouts.']);
-            data.push(['For complete field access analysis, use Salesforce Setup > Field-Level Security.']);
-            data.push(['Or select specific objects in the Field Permissions tab above.']);
-        }
-        
-        return data;
-    }
-    
+
     generateTabsAndAppsData() {
         const data = [];
         
