@@ -63,6 +63,9 @@ public with sharing class UserAccessSummaryController {
         @AuraEnabled public Boolean canRead;
         @AuraEnabled public Boolean canEdit;
         @AuraEnabled public String source;
+        @AuraEnabled public Boolean hasRead;
+        @AuraEnabled public Boolean hasEdit;
+        @AuraEnabled public String permissionSetName;
     }
     
     /**
@@ -100,7 +103,15 @@ public with sharing class UserAccessSummaryController {
     @AuraEnabled(cacheable=true)
     public static List<UserInfo> getUsers(String searchTerm, List<String> profileIds, Boolean includeInactive, Integer limitSize, Integer offset) {
         try {
-            List<User> users = UserAccessQueryHelper.getUsersWithFilters(searchTerm, profileIds, includeInactive, limitSize, offset);
+            // Create filter criteria object
+            UserAccessFilterCriteria filterCriteria = new UserAccessFilterCriteria();
+            filterCriteria.searchTerm = searchTerm;
+            filterCriteria.profileIds = profileIds;
+            filterCriteria.includeInactive = includeInactive;
+            filterCriteria.limitSize = limitSize;
+            filterCriteria.offset = offset;
+            
+            List<User> users = UserAccessQueryHelper.getUsersWithFilters(filterCriteria);
             return convertUsersToUserInfo(users);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving users: ' + e.getMessage());
@@ -330,7 +341,7 @@ public with sharing class UserAccessSummaryController {
     }
     
     /**
-     * @description Get field permissions for a user
+     * @description Get field permissions for a user using ultra-conservative approach
      * @param userId The user ID to get field permissions for
      * @return List of FieldPermissionInfo objects
      */
@@ -343,20 +354,201 @@ public with sharing class UserAccessSummaryController {
             if (permissionSetIds.isEmpty()) {
                 return new List<FieldPermissionInfo>();
             }
+
+            // Try the optimized approach first
+            try {
+                return processFieldPermissionsWithCursor(permissionSetIds);
+            } catch (Exception e) {
+                System.debug('Main field permissions method failed, trying minimal approach: ' + e.getMessage());
+                // Fallback to minimal approach
+                return getMinimalFieldPermissions(permissionSetIds);
+            }
+        } catch (Exception e) {
+            // If we hit system limits, return empty list with a specific error message
+            if (e.getMessage().contains('CPU time limit exceeded') || 
+                e.getMessage().contains('Apex CPU time limit exceeded') ||
+                e.getMessage().contains('Maximum CPU time exceeded')) {
+                throw new AuraHandledException('Field permissions could not be loaded due to system limits');
+            }
+            throw new AuraHandledException('Error retrieving field permissions: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * @description Get minimal field permissions as last resort
+     * @param permissionSetIds Set of permission set IDs
+     * @return List of FieldPermissionInfo objects
+     */
+    private static List<FieldPermissionInfo> getMinimalFieldPermissions(Set<Id> permissionSetIds) {
+        Map<String, FieldPermissionInfo> fieldPermMap = new Map<String, FieldPermissionInfo>();
+        
+        // Just get the first permission set and only 50 records
+        List<Id> permSetIdList = new List<Id>(permissionSetIds);
+        if (permSetIdList.isEmpty()) {
+            return new List<FieldPermissionInfo>();
+        }
+        
+        try {
+            List<FieldPermissions> minimalFields = [
+                SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
+                FROM FieldPermissions 
+                WHERE ParentId = :permSetIdList[0]
+                AND (PermissionsRead = true OR PermissionsEdit = true)
+                ORDER BY Field ASC
+                LIMIT 50
+            ];
             
-            List<FieldPermissions> fieldPerms = UserAccessQueryHelper.getFieldPermissions(permissionSetIds);
-            return processFieldPermissions(fieldPerms);
+            for (FieldPermissions fp : minimalFields) {
+                // Add null safety checks
+                if (fp == null || String.isBlank(fp.Field)) {
+                    continue;
+                }
+                
+                String fieldKey = fp.Field;
+                FieldPermissionInfo fieldPermInfo = createFieldPermissionInfoOptimized(fp, fieldKey);
+                
+                if (fieldPermInfo != null && String.isNotBlank(fieldKey)) {
+                    fieldPermMap.put(fieldKey, fieldPermInfo);
+                }
+            }
+            
+            List<FieldPermissionInfo> result = fieldPermMap.values();
+            
+            // Safe sorting with null checks
+            try {
+                result.sort(new FieldPermissionComparator());
+            } catch (Exception e) {
+                System.debug('Error sorting minimal field permissions: ' + e.getMessage());
+                // Continue with unsorted results
+            }
+            
+            System.debug('Minimal field permissions: returning ' + result.size() + ' fields');
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Even minimal field permissions failed: ' + e.getMessage());
+            return new List<FieldPermissionInfo>();
+        }
+    }
+
+    /**
+     * @description Process field permissions using ultra-conservative batching approach
+     * @param permissionSetIds Set of permission set IDs
+     * @return List of FieldPermissionInfo objects
+     */
+    private static List<FieldPermissionInfo> processFieldPermissionsWithCursor(Set<Id> permissionSetIds) {
+        Map<String, FieldPermissionInfo> fieldPermMap = new Map<String, FieldPermissionInfo>();
+        Integer processedCount = 0;
+        Integer maxRecords = 500; // Very conservative limit
+        Integer maxCpuPercent = 50; // Stop at 50% CPU usage
+        
+        // Check permissions first
+        if (!UserAccessSecurityUtil.hasFieldPermissionAccessPermission() || 
+            !Schema.sObjectType.FieldPermissions.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access field permission data');
+        }
+        
+        // Convert Set to List for processing
+        List<Id> permSetIdList = new List<Id>(permissionSetIds);
+        
+        // Process only the first few permission sets to avoid timeouts
+        Integer maxPermSetsToProcess = Math.min(3, permSetIdList.size());
+        
+        for (Integer i = 0; i < maxPermSetsToProcess && processedCount < maxRecords; i++) {
+            Id currentPermSetId = permSetIdList[i];
+            
+            // Check CPU before each permission set
+            if (Limits.getCpuTime() > (Limits.getLimitCpuTime() * maxCpuPercent / 100)) {
+                System.debug('Stopping early due to CPU usage: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime());
+                break;
+            }
+            
+            try {
+                // Query field permissions for just this one permission set with a small limit
+                List<FieldPermissions> singlePermSetFields = [
+                    SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
+                    FROM FieldPermissions 
+                    WHERE ParentId = :currentPermSetId
+                    AND (PermissionsRead = true OR PermissionsEdit = true)
+                    ORDER BY Field ASC
+                    LIMIT 100
+                ];
+                
+                // Process this small batch
+                for (FieldPermissions fp : singlePermSetFields) {
+                    if (processedCount >= maxRecords) break;
+                    
+                    // Null safety checks
+                    if (fp == null || String.isBlank(fp.Field)) {
+                        continue; // Skip invalid records
+                    }
+                    
+                    String fieldKey = fp.Field;
+                    FieldPermissionInfo fieldPermInfo = fieldPermMap.get(fieldKey);
+                    
+                    if (fieldPermInfo == null) {
+                        fieldPermInfo = createFieldPermissionInfoOptimized(fp, fieldKey);
+                        if (fieldPermInfo != null && String.isNotBlank(fieldKey)) {
+                            fieldPermMap.put(fieldKey, fieldPermInfo);
+                        }
+                    } else {
+                        mergeFieldPermissions(fieldPermInfo, fp);
+                    }
+                    
+                    processedCount++;
+                }
+                
+            } catch (Exception e) {
+                System.debug('Error processing permission set ' + currentPermSetId + ': ' + e.getMessage());
+                // Continue with next permission set
+                continue;
+            }
+        }
+        
+        List<FieldPermissionInfo> result = fieldPermMap.values();
+        
+        // Sort by object name then field name for better organization (with null safety)
+        try {
+            result.sort(new FieldPermissionComparator());
+        } catch (Exception e) {
+            System.debug('Error sorting field permissions, returning unsorted: ' + e.getMessage());
+            // Continue with unsorted results rather than failing
+        }
+        
+        System.debug('Ultra-conservative processing: ' + processedCount + ' field permissions from ' + 
+                    maxPermSetsToProcess + ' permission sets, returning ' + result.size() + ' unique fields');
+        return result;
+    }
+    
+    /**
+     * @description Get limited field permissions for quick preview (to avoid system limits)
+     * @param userId The user ID to get field permissions for
+     * @return List of FieldPermissionInfo objects (limited to 200 for performance)
+     */
+    @AuraEnabled
+    public static List<FieldPermissionInfo> getUserFieldPermissionsLimited(String userId) {
+        try {
+            List<PermissionSetAssignment> assignments = UserAccessQueryHelper.getPermissionSetAssignments(userId);
+            Set<Id> permissionSetIds = extractPermissionSetIds(assignments);
+            
+            if (permissionSetIds.isEmpty()) {
+                return new List<FieldPermissionInfo>();
+            }
+
+            // Get limited field permissions for quick display
+            List<FieldPermissions> fieldPerms = UserAccessQueryHelper.getFieldPermissionsLimited(permissionSetIds, 200);
+            return processFieldPermissionsSimple(fieldPerms);
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving field permissions: ' + e.getMessage());
         }
     }
-    
+
     /**
-     * @description Process field permissions and merge duplicates
+     * @description Simple processing for limited field permissions
      * @param fieldPerms List of FieldPermissions records
      * @return List of FieldPermissionInfo objects
      */
-    private static List<FieldPermissionInfo> processFieldPermissions(List<FieldPermissions> fieldPerms) {
+    private static List<FieldPermissionInfo> processFieldPermissionsSimple(List<FieldPermissions> fieldPerms) {
         Map<String, FieldPermissionInfo> fieldPermMap = new Map<String, FieldPermissionInfo>();
         
         for (FieldPermissions fp : fieldPerms) {
@@ -364,34 +556,261 @@ public with sharing class UserAccessSummaryController {
             FieldPermissionInfo fieldPermInfo = fieldPermMap.get(fieldKey);
             
             if (fieldPermInfo == null) {
-                fieldPermInfo = createFieldPermissionInfo(fp, fieldKey);
+                fieldPermInfo = createFieldPermissionInfoOptimized(fp, fieldKey);
                 fieldPermMap.put(fieldKey, fieldPermInfo);
             } else {
                 mergeFieldPermissions(fieldPermInfo, fp);
             }
         }
         
-        return fieldPermMap.values();
+        List<FieldPermissionInfo> result = fieldPermMap.values();
+        result.sort(new FieldPermissionComparator());
+        
+        return result;
+    }
+
+    /**
+     * @description Get field permissions by object name (like Salesforce setup)
+     * @param userId The user ID to get field permissions for
+     * @param objectApiName The object API name to get field permissions for
+     * @return List of FieldPermissionInfo objects
+     */
+    @AuraEnabled
+    public static List<FieldPermissionInfo> getObjectFieldPermissions(String userId, String objectApiName) {
+        try {
+            List<PermissionSetAssignment> assignments = UserAccessQueryHelper.getPermissionSetAssignments(userId);
+            Set<Id> permissionSetIds = extractPermissionSetIds(assignments);
+            
+            System.debug('Found permission set assignments: ' + assignments.size());
+            System.debug('Permission set IDs: ' + permissionSetIds.size());
+
+            // Get all fields for the specified object
+            Map<String, Schema.SObjectField> fieldMap = Schema.getGlobalDescribe()
+                .get(objectApiName)?.getDescribe()?.fields?.getMap();
+            
+            if (fieldMap == null) {
+                System.debug('Object not found: ' + objectApiName);
+                return new List<FieldPermissionInfo>();
+            }
+
+            System.debug('Found ' + fieldMap.size() + ' fields for object: ' + objectApiName);
+
+            // Get field permissions for this object (only if user has permission sets)
+            List<FieldPermissions> fieldPerms = new List<FieldPermissions>();
+            if (!permissionSetIds.isEmpty()) {
+                String fieldPrefix = objectApiName + '.';
+                fieldPerms = [
+                    SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
+                    FROM FieldPermissions 
+                    WHERE ParentId IN :permissionSetIds
+                    ORDER BY Field ASC
+                    LIMIT 1000
+                ];
+
+                System.debug('Found ' + fieldPerms.size() + ' field permissions in permission sets');
+            } else {
+                System.debug('No permission sets found - user access likely comes from profile');
+            }
+
+            // Filter for the specific object after query (only if we have permission sets)
+            String fieldPrefix = objectApiName + '.';
+            List<FieldPermissions> objectFieldPerms = new List<FieldPermissions>();
+            if (!permissionSetIds.isEmpty()) {
+                for (FieldPermissions fp : fieldPerms) {
+                    if (fp.Field != null && fp.Field.startsWith(fieldPrefix)) {
+                        objectFieldPerms.add(fp);
+                    }
+                }
+                System.debug('Found ' + objectFieldPerms.size() + ' field permissions for ' + objectApiName);
+            }
+
+            // Create a map of existing permissions
+            Map<String, FieldPermissions> existingPerms = new Map<String, FieldPermissions>();
+            for (FieldPermissions fp : objectFieldPerms) {
+                existingPerms.put(fp.Field, fp);
+            }
+
+            // Build comprehensive field list - ALWAYS include all fields
+            List<FieldPermissionInfo> result = new List<FieldPermissionInfo>();
+            
+            for (String fieldName : fieldMap.keySet()) {
+                String fullFieldName = objectApiName + '.' + fieldName;
+                Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldName).getDescribe();
+                
+                // Skip system fields that are not relevant for permissions
+                if (isSystemField(fieldName)) {
+                    continue;
+                }
+
+                FieldPermissionInfo fieldInfo = new FieldPermissionInfo();
+                fieldInfo.objectName = objectApiName;
+                
+                // Use a cleaner field name format - just the API name for now
+                fieldInfo.fieldName = fieldName;
+                
+                // Check if there's an explicit permission
+                FieldPermissions fp = existingPerms.get(fullFieldName);
+                if (fp != null) {
+                    fieldInfo.hasRead = fp.PermissionsRead;
+                    fieldInfo.hasEdit = fp.PermissionsEdit;
+                    fieldInfo.permissionSetName = fp.Parent.Label;
+                } else {
+                    // Default permissions based on field accessibility
+                    // For most users, if no explicit permission is set, they have default access
+                    fieldInfo.hasRead = fieldDescribe.isAccessible();
+                    fieldInfo.hasEdit = fieldDescribe.isUpdateable() && !fieldDescribe.isCalculated();
+                    fieldInfo.permissionSetName = 'Default (Profile)';
+                }
+                
+                // Also populate the legacy fields for backward compatibility
+                fieldInfo.canRead = fieldInfo.hasRead;
+                fieldInfo.canEdit = fieldInfo.hasEdit;
+                fieldInfo.source = fieldInfo.permissionSetName;
+                fieldInfo.fieldLabel = fieldDescribe.getLabel();
+                fieldInfo.objectLabel = objectApiName;
+                
+                result.add(fieldInfo);
+            }
+            
+            System.debug('Generated field permissions for ' + objectApiName + ': ' + result.size() + ' fields');
+            return result;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error retrieving object field permissions: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * @description Check if a field is a system field that should be excluded
+     * @param fieldName The field name to check
+     * @return Boolean indicating if it's a system field
+     */
+    private static Boolean isSystemField(String fieldName) {
+        Set<String> systemFields = new Set<String>{
+            'id', 'isdeleted', 'createddate', 'createdbyid', 'lastmodifieddate', 
+            'lastmodifiedbyid', 'systemmodstamp', 'lastactivitydate', 'lastreferenceddate',
+            'lastvieweddate', 'connectionreceivedid', 'connectionsentid'
+        };
+        return systemFields.contains(fieldName.toLowerCase());
+    }
+
+    /**
+     * @description Get available objects for field permissions analysis
+     * @return List of object API names and labels
+     */
+    @AuraEnabled
+    public static List<Map<String, String>> getAvailableObjects() {
+        try {
+            List<Map<String, String>> objects = new List<Map<String, String>>();
+            
+            // Common objects that users typically need field permissions for
+            Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+            Set<String> commonObjects = new Set<String>{
+                'Account', 'Contact', 'Lead', 'Opportunity', 'Case', 'Task', 'Event',
+                'User', 'Campaign', 'Product2', 'Quote', 'Contract', 'Asset',
+                'AppointmentInvitation', 'ApprovalSubmission', 'ApprovalWorkItem',
+                'ContentDocument', 'ContentVersion', 'Document', 'Folder',
+                'Order', 'OrderItem', 'Pricebook2', 'PricebookEntry',
+                'Solution', 'Idea', 'Note', 'Attachment',
+                'EmailMessage', 'EmailTemplate', 'Report', 'Dashboard',
+                'WorkOrder', 'WorkOrderLineItem', 'ServiceAppointment',
+                'Knowledge__kav', 'FAQ__kav'
+            };
+            
+            // Also add any custom objects that are accessible
+            for (String objName : globalDescribe.keySet()) {
+                if (objName.endsWith('__c')) {
+                    Schema.DescribeSObjectResult objDescribe = globalDescribe.get(objName).getDescribe();
+                    if (objDescribe.isAccessible() && objDescribe.isCustom()) {
+                        commonObjects.add(objName);
+                    }
+                }
+            }
+            
+            for (String objName : commonObjects) {
+                if (globalDescribe.containsKey(objName)) {
+                    Schema.DescribeSObjectResult objDescribe = globalDescribe.get(objName).getDescribe();
+                    if (objDescribe.isAccessible()) {
+                        Map<String, String> objInfo = new Map<String, String>();
+                        objInfo.put('apiName', objName);
+                        objInfo.put('label', objDescribe.getLabel());
+                        objects.add(objInfo);
+                    }
+                }
+            }
+            
+            return objects;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error retrieving available objects: ' + e.getMessage());
+        }
     }
     
     /**
-     * @description Create FieldPermissionInfo from FieldPermissions record
+     * @description Comparator class for sorting field permissions
+     */
+    public class FieldPermissionComparator implements Comparator<FieldPermissionInfo> {
+        public Integer compare(FieldPermissionInfo a, FieldPermissionInfo b) {
+            // Safe comparison with null checks
+            String aObjectName = (a != null && a.objectName != null) ? a.objectName : '';
+            String bObjectName = (b != null && b.objectName != null) ? b.objectName : '';
+            String aFieldName = (a != null && a.fieldName != null) ? a.fieldName : '';
+            String bFieldName = (b != null && b.fieldName != null) ? b.fieldName : '';
+            
+            if (!aObjectName.equals(bObjectName)) {
+                return aObjectName.compareTo(bObjectName);
+            }
+            return aFieldName.compareTo(bFieldName);
+        }
+    }
+    
+    /**
+     * @description Create FieldPermissionInfo from FieldPermissions record (optimized)
      * @param fp FieldPermissions record
      * @param fieldKey Field key (Object.Field format)
      * @return FieldPermissionInfo object
      */
-    private static FieldPermissionInfo createFieldPermissionInfo(FieldPermissions fp, String fieldKey) {
+    private static FieldPermissionInfo createFieldPermissionInfoOptimized(FieldPermissions fp, String fieldKey) {
         FieldPermissionInfo fieldPermInfo = new FieldPermissionInfo();
-        String[] fieldParts = fieldKey.split('\\.');
-        if (fieldParts.size() >= 2) {
-            fieldPermInfo.objectName = fieldParts[0];
-            fieldPermInfo.fieldName = fieldParts[1];
-            fieldPermInfo.objectLabel = getObjectLabel(fieldParts[0]);
-            fieldPermInfo.fieldLabel = getFieldLabel(fieldParts[0], fieldParts[1]);
+        
+        // Safe field key parsing with null checks
+        if (String.isNotBlank(fieldKey)) {
+            String[] fieldParts = fieldKey.split('\\.');
+            if (fieldParts != null && fieldParts.size() >= 2) {
+                fieldPermInfo.objectName = fieldParts[0];
+                fieldPermInfo.fieldName = fieldParts[1];
+                // Use API names instead of labels to avoid expensive Schema calls
+                fieldPermInfo.objectLabel = fieldParts[0]; // Use API name instead of label
+                fieldPermInfo.fieldLabel = fieldParts[1]; // Use API name instead of label
+            } else {
+                // Fallback if field key is malformed
+                fieldPermInfo.objectName = 'Unknown';
+                fieldPermInfo.fieldName = fieldKey != null ? fieldKey : 'Unknown';
+                fieldPermInfo.objectLabel = fieldPermInfo.objectName;
+                fieldPermInfo.fieldLabel = fieldPermInfo.fieldName;
+            }
+        } else {
+            fieldPermInfo.objectName = 'Unknown';
+            fieldPermInfo.fieldName = 'Unknown';
+            fieldPermInfo.objectLabel = 'Unknown';
+            fieldPermInfo.fieldLabel = 'Unknown';
         }
-        fieldPermInfo.canRead = fp.PermissionsRead;
-        fieldPermInfo.canEdit = fp.PermissionsEdit;
-        fieldPermInfo.source = fp.Parent.Label;
+        
+        // Safe permission assignment with null checks
+        if (fp != null) {
+            fieldPermInfo.canRead = fp.PermissionsRead != null ? fp.PermissionsRead : false;
+            fieldPermInfo.canEdit = fp.PermissionsEdit != null ? fp.PermissionsEdit : false;
+            
+            // Safe parent label access
+            if (fp.Parent != null && String.isNotBlank(fp.Parent.Label)) {
+                fieldPermInfo.source = fp.Parent.Label;
+            } else {
+                fieldPermInfo.source = 'Unknown Permission Set';
+            }
+        } else {
+            fieldPermInfo.canRead = false;
+            fieldPermInfo.canEdit = false;
+            fieldPermInfo.source = 'Unknown Permission Set';
+        }
+        
         return fieldPermInfo;
     }
     
@@ -401,8 +820,10 @@ public with sharing class UserAccessSummaryController {
      * @param fp New FieldPermissions record
      */
     private static void mergeFieldPermissions(FieldPermissionInfo fieldPermInfo, FieldPermissions fp) {
-        fieldPermInfo.canRead = fieldPermInfo.canRead || fp.PermissionsRead;
-        fieldPermInfo.canEdit = fieldPermInfo.canEdit || fp.PermissionsEdit;
+        if (fieldPermInfo != null && fp != null) {
+            fieldPermInfo.canRead = fieldPermInfo.canRead || (fp.PermissionsRead != null ? fp.PermissionsRead : false);
+            fieldPermInfo.canEdit = fieldPermInfo.canEdit || (fp.PermissionsEdit != null ? fp.PermissionsEdit : false);
+        }
     }
     
     /**
@@ -456,10 +877,20 @@ public with sharing class UserAccessSummaryController {
      */
     private static String getObjectLabel(String objectName) {
         try {
-            Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectName);
-            if (objType != null) {
-                return objType.getDescribe().getLabel();
+            // Cache the describe call to avoid timeout
+            if (String.isBlank(objectName)) {
+                return objectName;
             }
+            
+            // Use a more efficient approach for common objects
+            if (objectName.equalsIgnoreCase('Account')) return 'Account';
+            if (objectName.equalsIgnoreCase('Contact')) return 'Contact';
+            if (objectName.equalsIgnoreCase('Opportunity')) return 'Opportunity';
+            if (objectName.equalsIgnoreCase('Lead')) return 'Lead';
+            if (objectName.equalsIgnoreCase('Case')) return 'Case';
+            if (objectName.equalsIgnoreCase('User')) return 'User';
+            
+            // For other objects, return the API name to avoid performance issues
             return objectName;
         } catch (Exception e) {
             return objectName;
@@ -497,5 +928,127 @@ public with sharing class UserAccessSummaryController {
         // This is a simplified implementation
         // In a real scenario, you might need to query tab metadata
         return tabName.replace('_', ' ');
+    }
+    
+    /**
+     * @description Export user access data as CSV
+     * @param userId User ID to export data for
+     * @return CSV string content
+     */
+    @AuraEnabled
+    public static String exportUserAccessData(String userId) {
+        try {
+            if (!UserAccessSecurityUtil.hasUserAccessPermission()) {
+                throw new AuraHandledException('Insufficient permissions to export user data');
+            }
+            
+            // Get user details
+            UserInfo userInfo = getUserDetails(userId);
+            if (userInfo == null) {
+                throw new AuraHandledException('User not found');
+            }
+            
+            // Get permission sets
+            List<PermissionSetInfo> permissionSets = getUserPermissionSets(userId);
+            
+            // Get object permissions  
+            List<ObjectPermissionInfo> objectPermissions = getUserObjectPermissions(userId);
+            
+            // Get field permissions
+            List<FieldPermissionInfo> fieldPermissions = getUserFieldPermissions(userId);
+            
+            // Build CSV content
+            String csvContent = buildCSVContent(userInfo, permissionSets, objectPermissions, fieldPermissions);
+            
+            return csvContent;
+            
+        } catch (Exception e) {
+            throw new AuraHandledException('Error exporting user access data: ' + e.getMessage());
+        }
+    }
+    
+    /**
+     * @description Build CSV content from user access data
+     * @param userInfo User information
+     * @param permissionSets List of permission sets
+     * @param objectPermissions List of object permissions
+     * @param fieldPermissions List of field permissions
+     * @return CSV content string
+     */
+    private static String buildCSVContent(UserInfo userInfo, List<PermissionSetInfo> permissionSets, 
+                                         List<ObjectPermissionInfo> objectPermissions, 
+                                         List<FieldPermissionInfo> fieldPermissions) {
+        List<String> csvLines = new List<String>();
+        
+        // Header
+        csvLines.add('User Access Summary Report');
+        csvLines.add('Generated on: ' + DateTime.now().format('yyyy-MM-dd HH:mm:ss'));
+        csvLines.add('');
+        
+        // User Information
+        csvLines.add('User Information');
+        csvLines.add('Field,Value');
+        csvLines.add('"Name","' + escapeCSV(userInfo.name) + '"');
+        csvLines.add('"Username","' + escapeCSV(userInfo.username) + '"');
+        csvLines.add('"Email","' + escapeCSV(userInfo.email) + '"');
+        csvLines.add('"Profile","' + escapeCSV(userInfo.profileName) + '"');
+        csvLines.add('"Status","' + (userInfo.isActive ? 'Active' : 'Inactive') + '"');
+        csvLines.add('"Last Login","' + (userInfo.lastLoginDate != null ? String.valueOf(userInfo.lastLoginDate) : 'Never') + '"');
+        csvLines.add('"Department","' + escapeCSV(userInfo.department) + '"');
+        csvLines.add('"Title","' + escapeCSV(userInfo.title) + '"');
+        csvLines.add('');
+        
+        // Permission Sets
+        csvLines.add('Permission Sets');
+        csvLines.add('Label,API Name,Description,Type');
+        for (PermissionSetInfo ps : permissionSets) {
+            csvLines.add('"' + escapeCSV(ps.label) + '",' +
+                        '"' + escapeCSV(ps.name) + '",' +
+                        '"' + escapeCSV(ps.description) + '",' +
+                        '"' + escapeCSV(ps.type) + '"');
+        }
+        csvLines.add('');
+        
+        // Object Permissions
+        csvLines.add('Object Permissions');
+        csvLines.add('Object Label,Object API Name,Create,Read,Edit,Delete,View All,Modify All');
+        for (ObjectPermissionInfo op : objectPermissions) {
+            csvLines.add('"' + escapeCSV(op.objectLabel) + '",' +
+                        '"' + escapeCSV(op.objectName) + '",' +
+                        op.canCreate + ',' +
+                        op.canRead + ',' +
+                        op.canEdit + ',' +
+                        op.canDelete + ',' +
+                        op.canViewAll + ',' +
+                        op.canModifyAll);
+        }
+        csvLines.add('');
+        
+        // Field Permissions (limited to avoid huge files)
+        csvLines.add('Field Permissions (Top 100)');
+        csvLines.add('Object,Field,Read,Edit');
+        Integer fieldCount = 0;
+        for (FieldPermissionInfo fp : fieldPermissions) {
+            if (fieldCount >= 100) break;
+            csvLines.add('"' + escapeCSV(fp.objectName) + '",' +
+                        '"' + escapeCSV(fp.fieldName) + '",' +
+                        fp.canRead + ',' +
+                        fp.canEdit);
+            fieldCount++;
+        }
+        
+        return String.join(csvLines, '\n');
+    }
+    
+    /**
+     * @description Escape CSV values to handle quotes and commas
+     * @param value Value to escape
+     * @return Escaped value
+     */
+    private static String escapeCSV(String value) {
+        if (String.isBlank(value)) {
+            return '';
+        }
+        return value.replace('"', '""');
     }
 }

@@ -4,6 +4,18 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>User Access Summary App User</label>
     
+    <!-- Application Permissions -->
+    <applicationVisibilities>
+        <application>User_Access_Summary</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    
+    <!-- Tab Permissions -->
+    <tabSettings>
+        <tab>User_Access_Summary_Tab</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    
     <!-- User Permissions -->
     <userPermissions>
         <enabled>true</enabled>

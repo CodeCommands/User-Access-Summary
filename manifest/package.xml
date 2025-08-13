@@ -8,6 +8,7 @@
         <members>UserAccessSecurityUtil</members>
         <members>UserAccessSecurityUtilTest</members>
         <members>UserAccessQueryHelper</members>
+        <members>UserAccessFilterCriteria</members>
         <name>ApexClass</name>
     </types>
     <types>

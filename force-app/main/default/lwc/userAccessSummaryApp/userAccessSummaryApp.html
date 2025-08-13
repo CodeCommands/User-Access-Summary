@@ -109,36 +109,36 @@
                 <template if:true={userDetails}>
                     <lightning-card title="User Information" class="slds-m-bottom_medium">
                         <div class="slds-card__body slds-card__body_inner">
-                            <div class="slds-grid slds-gutters">
-                                <div class="slds-col slds-size_1-of-3">
+                            <div class="slds-grid slds-gutters slds-wrap">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                                     <div class="slds-form-element">
                                         <label class="slds-form-element__label slds-text-title_caps">Name</label>
                                         <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static">{userDetails.name}</span>
+                                            <span class="slds-form-element__static slds-truncate">{userDetails.name}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-3">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                                     <div class="slds-form-element">
                                         <label class="slds-form-element__label slds-text-title_caps">Username</label>
                                         <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static">{userDetails.username}</span>
+                                            <span class="slds-form-element__static slds-truncate">{userDetails.username}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-3">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                                     <div class="slds-form-element">
                                         <label class="slds-form-element__label slds-text-title_caps">Email</label>
                                         <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static">{userDetails.email}</span>
+                                            <span class="slds-form-element__static slds-truncate">{userDetails.email}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="slds-col slds-size_1-of-3">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
                                     <div class="slds-form-element">
                                         <label class="slds-form-element__label slds-text-title_caps">Profile</label>
                                         <div class="slds-form-element__control">
-                                            <span class="slds-form-element__static">{userDetails.profileName}</span>
+                                            <span class="slds-form-element__static slds-truncate">{userDetails.profileName}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -204,18 +204,110 @@
                     
                     <!-- Field Permissions Tab -->
                     <lightning-tab label="Field Permissions" value="fieldPermissions">
-                        <template if:true={hasFieldPermissions}>
-                            <lightning-datatable
-                                key-field="fieldName"
-                                data={fieldPermissions}
-                                columns={fieldPermissionColumns}
-                                hide-checkbox-column="true">
-                            </lightning-datatable>
-                        </template>
-                        <template if:false={hasFieldPermissions}>
-                            <div class="slds-text-align_center slds-m-vertical_large">
-                                <p class="slds-text-body_regular">No field permissions found for this user.</p>
+                        <!-- Object Selection - Similar to Salesforce Layout -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-1">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label slds-text-heading_small">Object Name:</label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-combobox
+                                            name="objectSelector"
+                                            variant="label-hidden"
+                                            value={selectedObject}
+                                            placeholder="Select an object to view field permissions..."
+                                            options={objectOptions}
+                                            onchange={handleObjectSelection}
+                                            class="slds-size_1-of-2 slds-medium-size_1-of-3">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                        
+                        <!-- Object-Specific Field Permissions -->
+                        <template if:true={hasObjectFieldPermissions}>
+                            <div class="slds-card">
+                                <div class="slds-card__header slds-grid">
+                                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                        <div class="slds-media__body">
+                                            <h2 class="slds-card__header-title">
+                                                <span class="slds-text-heading_small">Field Permissions for {selectedObject}</span>
+                                            </h2>
+                                        </div>
+                                    </header>
+                                </div>
+                                <div class="slds-card__body slds-card__body_inner">
+                                    <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                        All fields for this object with their current access permissions for the selected user.
+                                    </p>
+                                    <lightning-datatable
+                                        key-field="fieldName"
+                                        data={objectFieldPermissions}
+                                        columns={fieldPermissionColumns}
+                                        hide-checkbox-column="true"
+                                        show-row-number-column="false">
+                                    </lightning-datatable>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <!-- General Field Permissions (fallback) -->
+                        <template if:true={hasFieldPermissions}>
+                            <template if:false={hasObjectFieldPermissions}>
+                                <template if:false={selectedObject}>
+                                    <div class="slds-card slds-m-top_medium">
+                                        <div class="slds-card__header slds-grid">
+                                            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                                <div class="slds-media__body">
+                                                    <h2 class="slds-card__header-title">
+                                                        <span class="slds-text-heading_small">General Field Permissions</span>
+                                                    </h2>
+                                                </div>
+                                            </header>
+                                        </div>
+                                        <div class="slds-card__body slds-card__body_inner">
+                                            <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                                Field permissions from permission sets. Select an object above for complete field analysis.
+                                            </p>
+                                            <lightning-datatable
+                                                key-field="fieldName"
+                                                data={fieldPermissions}
+                                                columns={generalFieldPermissionColumns}
+                                                hide-checkbox-column="true"
+                                                show-row-number-column="false">
+                                            </lightning-datatable>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </template>
+                        
+                        <!-- No Data State -->
+                        <template if:false={hasFieldPermissions}>
+                            <template if:false={hasObjectFieldPermissions}>
+                                <div class="slds-illustration slds-illustration_large slds-text-align_center slds-m-vertical_large">
+                                    <template if:true={selectedObject}>
+                                        <div class="slds-text-longform">
+                                            <h3 class="slds-text-heading_medium">No Field Permissions Found</h3>
+                                            <p class="slds-text-body_regular">No field permissions were found for {selectedObject}.</p>
+                                            <p class="slds-text-body_small slds-text-color_weak">
+                                                This may be due to system limits or the user having default profile access only.
+                                            </p>
+                                        </div>
+                                    </template>
+                                    <template if:false={selectedObject}>
+                                        <div class="slds-text-longform">
+                                            <h3 class="slds-text-heading_medium">Select an Object</h3>
+                                            <p class="slds-text-body_regular">
+                                                Select an object above to view comprehensive field-level permissions for this user.
+                                            </p>
+                                            <p class="slds-text-body_small slds-text-color_weak">
+                                                This analysis shows all fields and their access permissions, similar to Salesforce Setup.
+                                            </p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
                         </template>
                     </lightning-tab>
                     

@@ -158,6 +158,51 @@ public with sharing class UserAccessQueryHelper {
                 WHERE ParentId IN :permissionSetIds
                 ORDER BY Field ASC];
     }
+
+    /**
+     * @description Get field permissions for permission sets in batches
+     * @param permissionSetIds List of permission set IDs (batch)
+     * @return List of FieldPermissions records
+     */
+    public static List<FieldPermissions> getFieldPermissionsBatch(List<Id> permissionSetIds) {
+        if (!UserAccessSecurityUtil.hasFieldPermissionAccessPermission()) {
+            throw new AuraHandledException('Insufficient permissions to access field permission data');
+        }
+        
+        // Check CRUD permissions for FieldPermissions object
+        if (!Schema.sObjectType.FieldPermissions.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access FieldPermissions records.');
+        }
+        
+        return [SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
+                FROM FieldPermissions 
+                WHERE ParentId IN :permissionSetIds
+                ORDER BY Field ASC
+                LIMIT 500]; // Limit per batch to prevent memory issues
+    }
+
+    /**
+     * @description Get limited field permissions for quick display
+     * @param permissionSetIds Set of permission set IDs
+     * @param recordLimit Maximum number of records to return
+     * @return List of FieldPermissions records
+     */
+    public static List<FieldPermissions> getFieldPermissionsLimited(Set<Id> permissionSetIds, Integer recordLimit) {
+        if (!UserAccessSecurityUtil.hasFieldPermissionAccessPermission()) {
+            throw new AuraHandledException('Insufficient permissions to access field permission data');
+        }
+        
+        // Check CRUD permissions for FieldPermissions object
+        if (!Schema.sObjectType.FieldPermissions.isAccessible()) {
+            throw new AuraHandledException('Insufficient permissions to access FieldPermissions records.');
+        }
+        
+        return [SELECT Field, PermissionsRead, PermissionsEdit, Parent.Label
+                FROM FieldPermissions 
+                WHERE ParentId IN :permissionSetIds
+                ORDER BY Field ASC
+                LIMIT :recordLimit];
+    }
     
     /**
      * @description Get connected applications
