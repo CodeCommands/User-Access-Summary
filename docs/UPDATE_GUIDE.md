@@ -12,7 +12,7 @@
 #### Method 1: Browser Installation (Recommended)
 1. **Click this URL** to install the latest version:
    ```
-   https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+   https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004uI9QAI
    ```
 2. **Choose "Upgrade"** when prompted
 3. **Select installation scope:**
@@ -22,7 +22,7 @@
 
 #### Method 2: Salesforce CLI
 ```bash
-sf package install --package 04tgL0000004sLCQAY --installation-key-bypass --target-org YOUR_ORG_ALIAS
+sf package install --package 04tgL0000004uI9QAI --installation-key-bypass --target-org YOUR_ORG_ALIAS
 ```
 
 ### What Happens During Update?
@@ -37,7 +37,8 @@ sf package install --package 04tgL0000004sLCQAY --installation-key-bypass --targ
 3. **Check for new features** - Review any new capabilities
 
 ### Version History
-- **v1.0.0-2** (Latest) - Updated publisher information
+- **v1.0.0-3** (Latest) - Updated publisher information (final)
+- **v1.0.0-2** - Updated publisher information
 - **v1.0.0-1** - Initial release
 
 ### Need Help?
@@ -45,5 +46,5 @@ sf package install --package 04tgL0000004sLCQAY --installation-key-bypass --targ
 - Check the app documentation in the repository
 
 ---
-**Current Latest Version:** 1.0.0-2  
-**Package ID:** 04tgL0000004sLCQAY
+**Current Latest Version:** 1.0.0-3  
+**Package ID:** 04tgL0000004uI9QAI

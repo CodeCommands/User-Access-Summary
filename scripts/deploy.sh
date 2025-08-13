@@ -4,7 +4,7 @@
 # ⚠️  WARNING: This is for DEVELOPMENT use only!
 # ⚠️  For END USERS: Use package installation instead!
 # 
-# Package Installation URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+# Package Installation URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004uI9QAI
 # 
 # This script deploys SOURCE CODE directly to a Salesforce org.
 # Use this for:
@@ -19,7 +19,7 @@ echo "=================================================================="
 echo ""
 echo "⚠️  WARNING: This deploys source code directly!"
 echo "⚠️  For regular installation, use the package instead:"
-echo "🔗 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY"
+echo "🔗 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004uI9QAI"
 echo ""
 
 # Check if sf CLI is installed

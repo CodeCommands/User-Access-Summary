@@ -62,95 +62,82 @@ echo ""
 echo "🔨 Step 3: Creating new package version..."
 echo "This may take several minutes..."
 
-RESULT=$(sf package version create \
+# Create package version and capture output
+OUTPUT_FILE="temp_package_result.txt"
+sf package version create \
     --package $PACKAGE_NAME \
     --installation-key-bypass \
     --wait 15 \
     --target-dev-hub $DEV_HUB \
-    $VALIDATION_FLAG \
-    --json)
+    $VALIDATION_FLAG > $OUTPUT_FILE 2>&1
 
 if [ $? -eq 0 ]; then
     echo "✅ Package version created successfully"
     
-    # Extract package version ID from JSON result
-    PACKAGE_VERSION_ID=$(echo $RESULT | jq -r '.result.SubscriberPackageVersionId')
-    VERSION_NUMBER=$(echo $RESULT | jq -r '.result.Version')
-    INSTALLATION_URL="https://login.salesforce.com/packaging/installPackage.apexp?p0=$PACKAGE_VERSION_ID"
+    # Extract information from the output file (without jq dependency)
+    echo ""
+    echo "🎉 Package Version Created Successfully!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Show the full output so user can see details
+    cat $OUTPUT_FILE
     
     echo ""
-    echo "🎉 New Package Version Details:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "📦 Package: $PACKAGE_NAME"
-    echo "🔢 Version: $VERSION_NUMBER"
-    echo "🆔 Package Version ID: $PACKAGE_VERSION_ID"
-    echo "🔗 Installation URL: $INSTALLATION_URL"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
     
-    # Step 6: Ask if user wants to update documentation
-    read -p "📝 Do you want to update project documentation automatically? (y/n): " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "📝 Updating documentation files..."
-        
-        # Update install-package.sh
-        if [ -f "scripts/install-package.sh" ]; then
-            # Create backup
-            cp scripts/install-package.sh scripts/install-package.sh.backup
-            
-            # Update URL and version
-            sed -i "s|https://login.salesforce.com/packaging/installPackage.apexp?p0=.*|$INSTALLATION_URL\"|" scripts/install-package.sh
-            sed -i "s|• Version: .*|• Version: $VERSION_NUMBER|" scripts/install-package.sh
-            sed -i "s|• Subscriber Package Version Id: .*|• Subscriber Package Version Id: $PACKAGE_VERSION_ID|" scripts/install-package.sh
-            sed -i "s|sf package install --package .* --installation-key-bypass|sf package install --package $PACKAGE_VERSION_ID --installation-key-bypass|" scripts/install-package.sh
-            
-            echo "✅ Updated scripts/install-package.sh"
-        fi
-        
-        # Update install-package.bat
-        if [ -f "scripts/install-package.bat" ]; then
-            # Create backup
-            cp scripts/install-package.bat scripts/install-package.bat.backup
-            
-            # Update URL and version
-            sed -i "s|https://login.salesforce.com/packaging/installPackage.apexp?p0=.*|$INSTALLATION_URL|" scripts/install-package.bat
-            sed -i "s|• Version: .*|• Version: $VERSION_NUMBER|" scripts/install-package.bat
-            sed -i "s|• Subscriber Package Version Id: .*|• Subscriber Package Version Id: $PACKAGE_VERSION_ID|" scripts/install-package.bat
-            sed -i "s|sf package install --package .* --installation-key-bypass|sf package install --package $PACKAGE_VERSION_ID --installation-key-bypass|" scripts/install-package.bat
-            
-            echo "✅ Updated scripts/install-package.bat"
-        fi
-        
+    # Try to extract Package Version ID from output
+    PACKAGE_VERSION_ID=$(grep -o "04t[a-zA-Z0-9]\{15\}" $OUTPUT_FILE | head -1)
+    
+    if [ ! -z "$PACKAGE_VERSION_ID" ]; then
+        INSTALLATION_URL="https://login.salesforce.com/packaging/installPackage.apexp?p0=$PACKAGE_VERSION_ID"
+        echo "🔗 Installation URL: $INSTALLATION_URL"
+        echo "🆔 Package Version ID: $PACKAGE_VERSION_ID"
         echo ""
-        echo "📋 Manual Updates Required:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Please manually update these files:"
-        echo "1. README.md - Update installation URL and version"
-        echo "2. docs/UPDATE_GUIDE.md - Update latest version info"
-        echo "3. Add release notes to RELEASE_NOTES.md"
+        
+        # Ask if user wants to update documentation
+        read -p "📝 Do you want to update project documentation with the new version? (y/n): " -n 1 -r
         echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "📝 Please manually update the following files with:"
+            echo "   Package Version ID: $PACKAGE_VERSION_ID"
+            echo "   Installation URL: $INSTALLATION_URL"
+            echo ""
+            echo "Files to update:"
+            echo "• scripts/install-package.sh"
+            echo "• scripts/install-package.bat"
+            echo "• README.md"
+            echo "• docs/UPDATE_GUIDE.md"
+        fi
+    else
+        echo "⚠️  Could not automatically extract Package Version ID."
+        echo "Please check the output above for the Package Version ID and Installation URL."
     fi
+    
+    # Clean up temp file
+    rm -f $OUTPUT_FILE
     
     # Step 7: Show next steps
     echo "🎯 Next Steps:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "1. Test the new package in a scratch org:"
-    echo "   sf package install --package $PACKAGE_VERSION_ID --installation-key-bypass --target-org test-org"
+    echo "1. Get the latest package versions:"
+    echo "   sf package version list --target-dev-hub $DEV_HUB --packages $PACKAGE_NAME"
     echo ""
-    echo "2. Update remaining documentation files manually"
+    echo "2. Test the new package in a scratch org:"
+    echo "   sf package install --package PACKAGE_VERSION_ID --installation-key-bypass --target-org test-org"
     echo ""
-    echo "3. Commit and tag the release:"
+    echo "3. Update remaining documentation files manually"
+    echo ""
+    echo "4. Commit and tag the release:"
     echo "   git add ."
-    echo "   git commit -m \"Release version $VERSION_NUMBER\""
-    echo "   git tag -a v$VERSION_NUMBER -m \"Version $VERSION_NUMBER release\""
-    echo ""
-    echo "4. Share the installation URL with users:"
-    echo "   $INSTALLATION_URL"
+    echo "   git commit -m \"Release new version\""
+    echo "   git tag -a vX.X.X -m \"Version X.X.X release\""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
 else
     echo "❌ Package version creation failed"
+    echo "Error output:"
+    cat $OUTPUT_FILE
+    rm -f $OUTPUT_FILE
     exit 1
 fi
 

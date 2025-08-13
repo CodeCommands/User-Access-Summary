@@ -59,33 +59,44 @@ echo.
 echo 🔨 Step 3: Creating new package version...
 echo This may take several minutes...
 
-sf package version create --package %PACKAGE_NAME% --installation-key-bypass --wait 15 --target-dev-hub %DEV_HUB% %VALIDATION_FLAG% --json > temp_result.json
+REM Create package version and capture output
+sf package version create --package %PACKAGE_NAME% --installation-key-bypass --wait 15 --target-dev-hub %DEV_HUB% %VALIDATION_FLAG% > temp_result.txt 2>&1
 
 if %errorlevel% equ 0 (
     echo ✅ Package version created successfully
     
-    REM Note: Manual extraction of JSON values needed
     echo.
-    echo 🎉 Package version created! Please check the output above for:
-    echo 📦 Package Version ID
-    echo 🔗 Installation URL
+    echo 🎉 Package Version Created Successfully!
+    echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    REM Show the output to user
+    type temp_result.txt
+    
+    echo.
+    echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     echo.
     echo 📝 Next Steps:
     echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    echo 1. Copy the Package Version ID from the output above
-    echo 2. Update scripts/install-package.sh and scripts/install-package.bat
-    echo 3. Update README.md with new installation URL
-    echo 4. Update docs/UPDATE_GUIDE.md
-    echo 5. Test the package installation
-    echo 6. Commit and tag the release
+    echo 1. Copy the Package Version ID from the output above ^(starts with 04t^)
+    echo 2. Get the latest package list:
+    echo    sf package version list --target-dev-hub %DEV_HUB% --packages %PACKAGE_NAME%
+    echo 3. Update these files with new Package Version ID:
+    echo    • scripts/install-package.sh
+    echo    • scripts/install-package.bat  
+    echo    • README.md
+    echo    • docs/UPDATE_GUIDE.md
+    echo 4. Test the package installation
+    echo 5. Commit and tag the release
     echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
     REM Clean up temp file
-    del temp_result.json >nul 2>&1
+    del temp_result.txt >nul 2>&1
     
 ) else (
     echo ❌ Package version creation failed
-    del temp_result.json >nul 2>&1
+    echo Error details:
+    type temp_result.txt
+    del temp_result.txt >nul 2>&1
     exit /b 1
 )
 

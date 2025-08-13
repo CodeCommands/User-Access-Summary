@@ -42,6 +42,7 @@ scripts\deploy.bat your-org-alias
 - For creating new versions of the package
 - Requires Dev Hub access
 - Only for project maintainers
+- **Fixed:** No longer requires `jq` dependency
 
 **Usage:**
 ```bash
@@ -50,6 +51,21 @@ scripts\deploy.bat your-org-alias
 
 # Windows
 scripts\create-new-version.bat
+```
+
+### `get-package-info.sh` / `get-package-info.bat`
+**📋 HELPER - Shows current package information**
+- Lists all package versions
+- Shows installation URLs
+- Helps with documentation updates
+
+**Usage:**
+```bash
+# Linux/Mac
+./scripts/get-package-info.sh
+
+# Windows
+scripts\get-package-info.bat
 ```
 
 ## 🎯 Which Script Should I Use?
@@ -62,6 +78,9 @@ scripts\create-new-version.bat
 
 ### I want to **create a new version** of the package:
 → Use `create-new-version.sh/.bat`
+
+### I want to **check current package versions**:
+→ Use `get-package-info.sh/.bat`
 
 ---
 

@@ -3,7 +3,7 @@ REM User Access Summary App - SOURCE DEPLOYMENT Script (For Developers)
 REM ⚠️  WARNING: This is for DEVELOPMENT use only!
 REM ⚠️  For END USERS: Use package installation instead!
 REM 
-REM Package Installation URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+REM Package Installation URL: https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004uI9QAI
 REM 
 REM This script deploys SOURCE CODE directly to a Salesforce org.
 REM Use this for:
@@ -18,7 +18,7 @@ echo ==================================================================
 echo.
 echo ⚠️  WARNING: This deploys source code directly!
 echo ⚠️  For regular installation, use the package instead:
-echo 🔗 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004sLCQAY
+echo 🔗 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tgL0000004uI9QAI
 echo.off
 REM User Access Summary App Deployment Script for Windows
 REM This script deploys the User Access Summary application to a Salesforce org
