@@ -935,7 +935,7 @@ export default class UserAccessSummaryApp extends LightningElement {
         const baseFileName = `UserAccessSummary_${this.userDetails.username}_${new Date().toISOString().split('T')[0]}`;
         const sheets = [];
         
-        // Sheet 1: User Summary
+        // Sheet 1: User Summary  
         sheets.push({
             name: 'User Summary',
             data: this.generateUserSummaryData(),
@@ -943,27 +943,34 @@ export default class UserAccessSummaryApp extends LightningElement {
             fileName: `${baseFileName}_1_User_Summary.csv`
         });
         
-        // Sheet 2: Permission Sets  
+        // Sheet 2: User Permissions
+        if (this.userPermissions && this.userPermissions.length > 0) {
+            sheets.push({
+                name: 'User Permissions',
+                data: this.generateUserPermissionsData(),
+                fileName: `${baseFileName}_2_User_Permissions.csv`
+            });
+        }
+        
+        // Sheet 3: Permission Sets  
         if (this.permissionSets && this.permissionSets.length > 0) {
             sheets.push({
                 name: 'Permission Sets',
                 data: this.generatePermissionSetsData(),
                 content: this.generatePermissionSetsSheet(),
-                fileName: `${baseFileName}_2_Permission_Sets.csv`
+                fileName: `${baseFileName}_3_Permission_Sets.csv`
             });
         }
         
-        // Sheet 3: Object Permissions
+        // Sheet 4: Object Permissions
         if (this.objectPermissions && this.objectPermissions.length > 0) {
             sheets.push({
                 name: 'Object Permissions',
                 data: this.generateObjectPermissionsData(),
                 content: this.generateObjectPermissionsSheet(),
-                fileName: `${baseFileName}_3_Object_Permissions.csv`
+                fileName: `${baseFileName}_4_Object_Permissions.csv`
             });
-        }
-        
-        // Sheet 4: Field Permissions (Limited for display)
+        }        // Sheet 4: Field Permissions (Limited for display)
         if (this.fieldPermissions && this.fieldPermissions.length > 0) {
             sheets.push({
                 name: 'Field Permissions',
@@ -973,13 +980,13 @@ export default class UserAccessSummaryApp extends LightningElement {
             });
         }
         
-        // Sheet 5: Tabs and Apps
+        // Sheet 6: Tabs and Apps
         if ((this.tabs && this.tabs.length > 0) || (this.connectedApps && this.connectedApps.length > 0)) {
             sheets.push({
                 name: 'Tabs and Apps',
                 data: this.generateTabsAndAppsData(),
                 content: this.generateTabsAndAppsSheet(),
-                fileName: `${baseFileName}_5_Tabs_and_Apps.csv`
+                fileName: `${baseFileName}_6_Tabs_and_Apps.csv`
             });
         }
         
@@ -995,7 +1002,15 @@ export default class UserAccessSummaryApp extends LightningElement {
             data: this.generateUserSummaryData()
         });
         
-        // Sheet 2: Permission Sets  
+        // Sheet 2: User Permissions
+        if (this.userPermissions && this.userPermissions.length > 0) {
+            sheets.push({
+                name: 'User Permissions',
+                data: this.generateUserPermissionsData()
+            });
+        }
+        
+        // Sheet 3: Permission Sets  
         if (this.permissionSets && this.permissionSets.length > 0) {
             sheets.push({
                 name: 'Permission Sets',
@@ -1003,7 +1018,7 @@ export default class UserAccessSummaryApp extends LightningElement {
             });
         }
         
-        // Sheet 3: Object Permissions
+        // Sheet 4: Object Permissions
         if (this.objectPermissions && this.objectPermissions.length > 0) {
             sheets.push({
                 name: 'Object Permissions',
@@ -1011,13 +1026,13 @@ export default class UserAccessSummaryApp extends LightningElement {
             });
         }
         
-        // Sheet 4: Field Permissions (Always include, even if empty)
+        // Sheet 5: Field Permissions (Always include, even if empty)
         sheets.push({
             name: 'Field Permissions',
             data: this.generateFieldPermissionsData(fullFieldPermissions)
         });
         
-        // Sheet 5: Tabs and Apps
+        // Sheet 6: Tabs and Apps
         if ((this.tabs && this.tabs.length > 0) || (this.connectedApps && this.connectedApps.length > 0)) {
             sheets.push({
                 name: 'Tabs and Apps',
@@ -1055,20 +1070,41 @@ export default class UserAccessSummaryApp extends LightningElement {
         return data;
     }
     
+    generateUserPermissionsData() {
+        const data = [];
+        
+        // Header
+        data.push(['USER PERMISSIONS']);
+        data.push(['Label', 'API Name', 'Description', 'Source']);
+        
+        // User permissions data - match UI columns exactly
+        this.userPermissions.forEach(perm => {
+            data.push([
+                perm.label || '',
+                perm.apiName || '',
+                perm.description || '',
+                perm.source || ''
+            ]);
+        });
+        
+        return data;
+    }
+    
     generatePermissionSetsData() {
         const data = [];
         
         // Header
         data.push(['PERMISSION SETS']);
-        data.push(['Permission Set Name', 'Label', 'Description', 'Type']);
+        data.push(['Label', 'API Name', 'Description', 'Type', 'Date Assigned']);
         
-        // Permission sets data
+        // Permission sets data - match UI columns exactly
         this.permissionSets.forEach(ps => {
             data.push([
-                ps.name || '',
                 ps.label || '',
+                ps.name || '',
                 ps.description || '',
-                ps.type || ''
+                ps.type || '',
+                ps.assignedDate || ''
             ]);
         });
         
@@ -1080,18 +1116,19 @@ export default class UserAccessSummaryApp extends LightningElement {
         
         // Header
         data.push(['OBJECT PERMISSIONS']);
-        data.push(['Object Name', 'Read', 'Create', 'Edit', 'Delete', 'View All', 'Modify All']);
+        data.push(['Object', 'API Name', 'Create', 'Read', 'Edit', 'Delete', 'View All', 'Modify All']);
         
-        // Object permissions data
+        // Object permissions data - match UI columns exactly
         this.objectPermissions.forEach(obj => {
             data.push([
+                obj.objectLabel || '',
                 obj.objectName || '',
-                obj.hasRead ? 'Yes' : 'No',
-                obj.hasCreate ? 'Yes' : 'No',
-                obj.hasEdit ? 'Yes' : 'No',
-                obj.hasDelete ? 'Yes' : 'No',
-                obj.hasViewAll ? 'Yes' : 'No',
-                obj.hasModifyAll ? 'Yes' : 'No'
+                obj.canCreate ? 'Yes' : 'No',
+                obj.canRead ? 'Yes' : 'No',
+                obj.canEdit ? 'Yes' : 'No',
+                obj.canDelete ? 'Yes' : 'No',
+                obj.canViewAll ? 'Yes' : 'No',
+                obj.canModifyAll ? 'Yes' : 'No'
             ]);
         });
         
@@ -1186,31 +1223,34 @@ export default class UserAccessSummaryApp extends LightningElement {
         data.push(['TABS AND APPLICATIONS']);
         data.push(['']);
         
-        // Tabs section
+        // Tabs section - Match UI columns exactly
         if (this.tabs && this.tabs.length > 0) {
             data.push(['AVAILABLE TABS']);
-            data.push(['Tab Name', 'Label', 'Is Standard']);
+            data.push(['Tab Label', 'API Name', 'Visibility', 'Available', 'Type']);
             
             this.tabs.forEach(tab => {
                 data.push([
-                    tab.name || '',
-                    tab.label || '',
-                    tab.isStandard ? 'Yes' : 'No'
+                    tab.tabLabel || '',
+                    tab.tabName || '',
+                    tab.visibility || '',
+                    tab.isAvailable ? 'Yes' : 'No',
+                    tab.tabType || ''
                 ]);
             });
             
             data.push(['']);
         }
         
-        // Connected Apps section
+        // Connected Apps section - Match UI columns exactly
         if (this.connectedApps && this.connectedApps.length > 0) {
             data.push(['CONNECTED APPLICATIONS']);
-            data.push(['App Name', 'Description']);
+            data.push(['App Name', 'Description', 'Access Type']);
             
             this.connectedApps.forEach(app => {
                 data.push([
                     app.name || '',
-                    app.description || ''
+                    app.description || '',
+                    app.accessType || ''
                 ]);
             });
         }
