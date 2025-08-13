@@ -656,10 +656,20 @@ public with sharing class UserAccessSummaryController {
                     fieldInfo.permissionSetName = fp.Parent.Label;
                 } else {
                     // Default permissions based on field accessibility
-                    // For most users, if no explicit permission is set, they have default access
                     fieldInfo.hasRead = fieldDescribe.isAccessible();
                     fieldInfo.hasEdit = fieldDescribe.isUpdateable() && !fieldDescribe.isCalculated();
-                    fieldInfo.permissionSetName = 'Default (Profile)';
+                    
+                    // Better permission source determination
+                    if (!permissionSetIds.isEmpty() && (fieldInfo.hasRead || fieldInfo.hasEdit)) {
+                        // User has permission sets and field access - likely from object-level permissions or profile
+                        fieldInfo.permissionSetName = 'Object/Profile Access';
+                    } else if (!permissionSetIds.isEmpty()) {
+                        // User has permission sets but no field access
+                        fieldInfo.permissionSetName = 'No Access';
+                    } else {
+                        // User has no permission sets - access from profile only
+                        fieldInfo.permissionSetName = 'Profile Access';
+                    }
                 }
                 
                 // Also populate the legacy fields for backward compatibility

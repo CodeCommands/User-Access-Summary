@@ -910,83 +910,78 @@ export default class UserAccessSummaryApp extends LightningElement {
     
     generateFieldPermissionsData(fieldPermissionsArray = null) {
         const data = [];
-        const fieldPermsToUse = fieldPermissionsArray || [];
         
         // Header
-        data.push(['FIELD PERMISSIONS']);
+        data.push(['FIELD PERMISSIONS SUMMARY']);
+        data.push(['Shows field-level access permissions for each object']);
         data.push(['']);
         data.push(['Object Name', 'Field Name', 'Read Access', 'Edit Access', 'Permission Source']);
         
-        // Check if we have object-specific field permissions to include
-        if (this.objectFieldPermissions && this.objectFieldPermissions.length > 0 && 
-            (!fieldPermissionsArray || fieldPermissionsArray === this.objectFieldPermissions)) {
-            data.push([`=== ${this.selectedObject} (Complete Object Analysis) ===`, '', '', '', '']);
+        // Use the comprehensive field permissions loaded for all objects
+        if (fieldPermissionsArray && fieldPermissionsArray.length > 0) {
+            console.log('Exporting field permissions for all objects:', fieldPermissionsArray.length);
             
-            // Sort object field permissions by field name
-            const sortedObjectPerms = [...this.objectFieldPermissions].sort((a, b) => 
-                (a.fieldName || '').localeCompare(b.fieldName || '')
-            );
-            
-            sortedObjectPerms.forEach(field => {
-                data.push([
-                    field.objectName || this.selectedObject || '',
-                    field.fieldName || '',
-                    (field.hasRead !== undefined ? field.hasRead : field.canRead) ? 'Yes' : 'No',
-                    (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) ? 'Yes' : 'No',
-                    field.permissionSetName || field.source || 'Default'
-                ]);
-            });
-            data.push(['', '', '', '', '']);
-        }
-        
-        // Add general field permissions data if available and different from object permissions
-        if (fieldPermsToUse && fieldPermsToUse.length > 0 && fieldPermsToUse !== this.objectFieldPermissions) {
-            // Consolidate permissions by object and field, combining from multiple permission sets
-            const consolidatedPerms = {};
-            
-            fieldPermsToUse.forEach(field => {
-                const objectName = field.objectName || field.objectLabel || 'Unknown';
-                const fieldName = field.fieldName || field.fieldLabel || '';
-                const key = `${objectName}.${fieldName}`;
-                
-                if (!consolidatedPerms[key]) {
-                    consolidatedPerms[key] = {
-                        objectName: objectName,
-                        fieldName: fieldName,
-                        hasRead: field.hasRead !== undefined ? field.hasRead : field.canRead,
-                        hasEdit: field.hasEdit !== undefined ? field.hasEdit : field.canEdit,
-                        permissionSources: []
-                    };
-                }
-                
-                // Combine permissions (if ANY permission set grants access, user has access)
-                if (field.hasRead !== undefined ? field.hasRead : field.canRead) {
-                    consolidatedPerms[key].hasRead = true;
-                }
-                if (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) {
-                    consolidatedPerms[key].hasEdit = true;
-                }
-                
-                // Track permission sources
-                const source = field.permissionSetName || field.source || 'Profile/Permission Set';
-                if (!consolidatedPerms[key].permissionSources.includes(source)) {
-                    consolidatedPerms[key].permissionSources.push(source);
-                }
-            });
-            
-            // Group consolidated permissions by object
+            // Group permissions by object
             const groupedByObject = {};
-            Object.values(consolidatedPerms).forEach(field => {
-                if (!groupedByObject[field.objectName]) {
-                    groupedByObject[field.objectName] = [];
+            fieldPermissionsArray.forEach(field => {
+                const objectName = field.objectName || 'Unknown';
+                if (!groupedByObject[objectName]) {
+                    groupedByObject[objectName] = [];
                 }
-                groupedByObject[field.objectName].push(field);
+                groupedByObject[objectName].push(field);
             });
             
-            // Add data grouped by object
+            // Sort objects alphabetically and add their field permissions
             Object.keys(groupedByObject).sort().forEach(objectName => {
                 // Add object header
-                data.push([`=== ${objectName} (From Permission Sets) ===`, '', '', '', '']);
+                data.push([`${objectName} Object`, '', '', '', '']);
+                
+                // Sort fields within object
+                groupedByObject[objectName].sort((a, b) => 
+                    (a.fieldName || '').localeCompare(b.fieldName || '')
+                );
+                
+                // Add fields for this object
+                groupedByObject[objectName].forEach(field => {
+                    data.push([
+                        objectName,
+                        field.fieldName || '',
+                        (field.hasRead !== undefined ? field.hasRead : field.canRead) ? 'Yes' : 'No',
+                        (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) ? 'Yes' : 'No',
+                        field.permissionSetName || field.source || 'Profile Access'
+                    ]);
+                });
+                
+                // Add spacing between objects
+                data.push(['', '', '', '', '']);
+            });
+        } else {
+            // Fallback: show currently selected object if no comprehensive data
+            if (this.objectFieldPermissions && this.objectFieldPermissions.length > 0) {
+                data.push([`${this.selectedObject} Object (Current Selection)`, '', '', '', '']);
+                
+                const sortedFields = [...this.objectFieldPermissions].sort((a, b) => 
+                    (a.fieldName || '').localeCompare(b.fieldName || '')
+                );
+                
+                sortedFields.forEach(field => {
+                    data.push([
+                        field.objectName || this.selectedObject || '',
+                        field.fieldName || '',
+                        (field.hasRead !== undefined ? field.hasRead : field.canRead) ? 'Yes' : 'No',
+                        (field.hasEdit !== undefined ? field.hasEdit : field.canEdit) ? 'Yes' : 'No',
+                        field.permissionSetName || field.source || 'Profile Access'
+                    ]);
+                });
+            } else {
+                data.push(['No field permissions data available', '', '', '', '']);
+                data.push(['This may indicate that field access comes from the user profile', '', '', '', '']);
+                data.push(['rather than explicit permission set field permissions.', '', '', '', '']);
+            }
+        }
+        
+        return data;
+    }
                 
                 // Sort fields within object
                 groupedByObject[objectName].sort((a, b) => a.fieldName.localeCompare(b.fieldName));
