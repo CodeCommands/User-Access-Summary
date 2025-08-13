@@ -449,7 +449,7 @@ export default class UserAccessSummaryApp extends LightningElement {
         }
     }
 
-    async loadFieldPermissionsForAllObjects() {
+    async loadFieldPermissionsForAllObjects(userId = null) {
         try {
             console.log('Loading field permissions for all objects in object permissions...');
             
@@ -463,29 +463,69 @@ export default class UserAccessSummaryApp extends LightningElement {
             
             console.log('Found objects to load field permissions for:', Array.from(uniqueObjects));
             
-            // Load field permissions for each object
+            // Instead of calling the method multiple times, use a more efficient approach
+            // Call the method for each object but with proper error handling and timing
             const allFieldPermissions = [];
+            const userIdToUse = userId || this.selectedUser; // selectedUser is just the user ID string
+            
+            console.log('Export: Received userId parameter:', userId);
+            console.log('Export: this.selectedUser:', this.selectedUser);
+            console.log('Export: Final userIdToUse:', userIdToUse);
+            
+            if (!userIdToUse) {
+                console.error('No user ID available for field permissions during export');
+                console.error('Export context - userId param:', userId);
+                console.error('Export context - selectedUser:', this.selectedUser);
+                return [];
+            }
+            
+            console.log('Export: Loading field permissions for', uniqueObjects.size, 'objects');
+            
+            // Process objects one by one to avoid overwhelming the server
             for (const objectName of uniqueObjects) {
                 try {
-                    console.log(`Loading field permissions for object: ${objectName}`);
+                    console.log(`Export: Loading field permissions for object: ${objectName}`);
+                    
+                    // Add a small delay to avoid rapid-fire requests that might cause issues
+                    if (allFieldPermissions.length > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+                    }
+                    
+                    console.log('Export: Calling getObjectFieldPermissions with userId:', userIdToUse, 'objectApiName:', objectName);
+                    
                     const objectFieldPerms = await getObjectFieldPermissions({ 
-                        userId: this.selectedUser.id,
+                        userId: userIdToUse,
                         objectApiName: objectName 
                     });
                     
-                    if (objectFieldPerms && objectFieldPerms.length > 0) {
-                        allFieldPermissions.push(...objectFieldPerms);
-                        console.log(`Loaded ${objectFieldPerms.length} field permissions for ${objectName}`);
+                    const fieldPermissionsResult = objectFieldPerms || [];
+                    
+                    if (fieldPermissionsResult.length > 0) {
+                        console.log(`Export: SUCCESS - Loaded ${fieldPermissionsResult.length} field permissions for ${objectName}`);
+                        console.log(`Export: Sample field permission for ${objectName}:`, fieldPermissionsResult[0]);
+                        
+                        allFieldPermissions.push(...fieldPermissionsResult);
                     } else {
-                        console.log(`No field permissions found for ${objectName}`);
+                        console.log(`Export: No field permissions found for ${objectName} - may be normal for objects with only profile access`);
                     }
                 } catch (error) {
-                    console.error(`Error loading field permissions for ${objectName}:`, error);
+                    console.error(`Export: Error loading field permissions for ${objectName}:`, error);
                     // Continue with other objects even if one fails
                 }
             }
             
-            console.log(`Total field permissions loaded for all objects: ${allFieldPermissions.length}`);
+            console.log(`Export: Total field permissions loaded for all objects: ${allFieldPermissions.length}`);
+            
+            // Debug: Log sample of final data structure
+            if (allFieldPermissions.length > 0) {
+                const testFields = allFieldPermissions.filter(f => f.fieldName && (f.fieldName.includes('test1') || f.fieldName.includes('test2')));
+                if (testFields.length > 0) {
+                    console.log('Export: Found test fields:', testFields);
+                } else {
+                    console.log('Export: Sample final field permission data:', allFieldPermissions[0]);
+                }
+            }
+            
             return allFieldPermissions;
             
         } catch (error) {
@@ -562,11 +602,11 @@ export default class UserAccessSummaryApp extends LightningElement {
             
             console.log('Starting to load field permissions for:', this.selectedObject);
             
-            // Use provided userId or fallback to selectedUser.id
-            const userIdToUse = userId || (this.selectedUser && this.selectedUser.id);
+            // Use provided userId or fallback to selectedUser (which is just the user ID string)
+            const userIdToUse = userId || this.selectedUser;
             console.log('User ID to use:', userIdToUse);
             console.log('Provided userId:', userId);
-            console.log('selectedUser.id:', this.selectedUser && this.selectedUser.id);
+            console.log('selectedUser:', this.selectedUser);
             
             if (!userIdToUse) {
                 console.error('No user ID available for field permissions');
@@ -657,38 +697,50 @@ export default class UserAccessSummaryApp extends LightningElement {
 
     async generateExcelWithSheetJS() {
         try {
-            this.showToast('Info', 'Preparing Excel export with comprehensive field permissions...', 'info');
+            this.showToast('Info', 'Preparing Excel export with comprehensive field permissions from all objects...', 'info');
             
-            // Load field permissions for ALL objects in object permissions
+            // Ensure we have a valid user ID for the export
+            const exportUserId = this.selectedUser; // selectedUser is just the user ID string
+            if (!exportUserId) {
+                console.error('No user selected for export');
+                this.showToast('Error', 'No user selected for export', 'error');
+                return;
+            }
+            
+            console.log('Export: Using user ID:', exportUserId);
+            
+            // Always load field permissions for ALL objects for comprehensive export
             let exportFieldPermissions = [];
             
             if (this.objectPermissions && this.objectPermissions.length > 0) {
-                console.log('Loading field permissions for all objects...');
-                exportFieldPermissions = await this.loadFieldPermissionsForAllObjects();
+                console.log('Loading field permissions for all objects for comprehensive export...');
+                console.log('Export: selectedUser before loadFieldPermissionsForAllObjects:', this.selectedUser);
+                console.log('Export: Available user ID:', exportUserId);
+                exportFieldPermissions = await this.loadFieldPermissionsForAllObjects(exportUserId);
                 console.log('Loaded field permissions for all objects:', exportFieldPermissions.length);
             } 
-            // Fallback to current UI data if no object permissions
+            // Fallback to general field permissions if no object permissions
             else if (this.fieldPermissions && this.fieldPermissions.length > 0) {
                 exportFieldPermissions = [...this.fieldPermissions];
                 console.log('Using general field permissions for export:', exportFieldPermissions.length);
             }
-            // Last resort: try to load fresh data
+            // Last resort: try to load fresh comprehensive data
             else {
                 try {
                     exportFieldPermissions = await this.loadFullFieldPermissionsForExport(this.selectedUser.id);
-                    console.log('Loaded fresh field permissions for export:', exportFieldPermissions.length);
+                    console.log('Loaded fresh comprehensive field permissions for export:', exportFieldPermissions.length);
                 } catch (error) {
                     console.log('Fresh load failed, using empty array for export');
                     exportFieldPermissions = [];
                 }
             }
             
-            console.log('Final field permissions for export:', exportFieldPermissions.length);
+            console.log('Final comprehensive field permissions for export:', exportFieldPermissions.length);
             
             // Create a new workbook
             const workbook = window.XLSX.utils.book_new();
             
-            // Generate all sheets data with the comprehensive field permissions
+            // Generate all sheets data with comprehensive field permissions from all objects
             const sheets = this.generateAllSheetsWithFullData(exportFieldPermissions);
             console.log('Generated sheets:', sheets.map(s => s.name));
             
@@ -943,13 +995,8 @@ export default class UserAccessSummaryApp extends LightningElement {
                 
                 // Add fields for this object
                 groupedByObject[objectName].forEach(field => {
-                    // Determine the actual permission source
-                    let permissionSource = 'Profile Access';
-                    if (field.permissionSetName && field.permissionSetName !== 'Default (Profile)') {
-                        permissionSource = field.permissionSetName;
-                    } else if (field.source && field.source !== 'Default (Profile)') {
-                        permissionSource = field.source;
-                    }
+                    // Use the permission source directly from the field data (this matches the UI)
+                    let permissionSource = field.permissionSetName || field.source || 'Profile Access';
                     
                     data.push([
                         objectName,
@@ -973,13 +1020,8 @@ export default class UserAccessSummaryApp extends LightningElement {
                 );
                 
                 sortedFields.forEach(field => {
-                    // Determine the actual permission source
-                    let permissionSource = 'Profile Access';
-                    if (field.permissionSetName && field.permissionSetName !== 'Default (Profile)') {
-                        permissionSource = field.permissionSetName;
-                    } else if (field.source && field.source !== 'Default (Profile)') {
-                        permissionSource = field.source;
-                    }
+                    // Use the permission source directly from the field data (this matches the UI)
+                    let permissionSource = field.permissionSetName || field.source || 'Profile Access';
                     
                     data.push([
                         field.objectName || this.selectedObject || '',
