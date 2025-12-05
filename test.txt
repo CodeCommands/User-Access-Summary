@@ -1,7 +1,6 @@
 public class TempFileUploadAction {
 
     // --- INNER CLASS FOR OUTPUT ---
-    // This defines the structure of the data the Flow will receive.
     public class ActionOutput {
         @InvocableVariable(label='Temp File Upload ID' description='The Id of the Temp_File_Upload__c record found.')
         public Id tempFileUploadId;
@@ -12,15 +11,10 @@ public class TempFileUploadAction {
         @InvocableVariable(label='File Content (Base64)' description='The Base64-encoded body of the file content.')
         public String fileBodyBase64;
     }
-    
-    // --- INNER CLASS FOR INPUT (If needed, but using simple List<String> is fine for just the name) ---
-    // public class ActionInput { ... } 
 
-    // --- INVOCABLE METHOD ---
     @InvocableMethod(label='Get Record and Attachment Data' description='Finds a Temp_File_Upload__c record by name and returns its related file content.')
     public static List<ActionOutput> getRecordAndAttachment(List<String> recordNames) {
         
-        // 1. Initialize the results list. It must be a List of the output inner class.
         List<ActionOutput> results = new List<ActionOutput>();
         
         if (recordNames == null || recordNames.isEmpty()) {
@@ -38,33 +32,46 @@ public class TempFileUploadAction {
         ];
 
         if (targetRecord == null) {
-            // Return an empty result if the record is not found.
+            // Return an empty output object list if no record is found.
+            results.add(new ActionOutput());
+            return results;
+        }
+
+        // --- STEP 2: Query ContentDocumentLink to get the ContentDocumentId ---
+        // This query must be separate because ContentDocumentLink is restricted.
+        List<ContentDocumentLink> links = [
+            SELECT ContentDocumentId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :targetRecord.Id
+            LIMIT 1 // Assuming each record only has 1 attachment
+        ];
+
+        if (links.isEmpty()) {
+            // Return empty output if the record is found but no file is attached.
+            results.add(new ActionOutput());
             return results;
         }
         
-        // --- STEP 2: Find the related ContentVersion ---
-        // ContentDocumentLink links the record to the ContentDocument (File).
-        // ContentVersion holds the actual file data and metadata. We get the latest version (IsLatest=true).
+        Id contentDocId = links[0].ContentDocumentId;
+
+        // --- STEP 3: Query ContentVersion using the ContentDocumentId ---
+        // We query ContentVersion for the file data (VersionData).
         List<ContentVersion> fileVersions = [
             SELECT Id, Title, VersionData, FileType
             FROM ContentVersion
-            WHERE ContentDocumentId IN (
-                SELECT ContentDocumentId
-                FROM ContentDocumentLink
-                WHERE LinkedEntityId = :targetRecord.Id
-            )
+            WHERE ContentDocumentId = :contentDocId
             AND IsLatest = TRUE
             LIMIT 1
         ];
 
-        // --- STEP 3: Package the Output ---
+        // --- STEP 4: Package the Output ---
         ActionOutput output = new ActionOutput();
         output.tempFileUploadId = targetRecord.Id;
 
         if (!fileVersions.isEmpty()) {
             ContentVersion fileVersion = fileVersions[0];
             
-            // The VersionData field is the Base64-encoded content of the file.
+            // Encode the file body to Base64 to safely return it to the Flow.
             output.fileName = fileVersion.Title + '.' + fileVersion.FileType;
             output.fileBodyBase64 = EncodingUtil.base64Encode(fileVersion.VersionData);
         }
