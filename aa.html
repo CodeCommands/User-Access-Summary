@@ -1,1 +1,167 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Salesforce Architecture Strategy: Single vs. Multi-Org</title>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 40px; background-color: #f4f6f9; }
+        .container { background-color: #fff; padding: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; }
+        h1 { color: #003e6b; border-bottom: 3px solid #00a1e0; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #2c3e50; margin-top: 40px; border-left: 6px solid #00a1e0; padding-left: 15px; font-size: 1.6em; }
+        h3 { color: #555; margin-top: 30px; font-size: 1.3em; font-weight: 600; }
+        p { margin-bottom: 15px; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95em; }
+        th { background-color: #003e6b; color: #fff; padding: 12px; text-align: left; }
+        td { border: 1px solid #e1e4e8; padding: 12px; vertical-align: top; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        /* Callout Boxes */
+        .callout { padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 5px solid; }
+        .callout-risk { background-color: #fff5f5; border-color: #e74c3c; color: #c0392b; }
+        .callout-info { background-color: #eefbff; border-color: #2980b9; color: #2c3e50; }
+        .callout-rec { background-color: #e8f5e9; border-color: #27ae60; color: #1e6d3b; }
+
+        /* Badge Styles */
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; color: white; }
+        .badge-high { background-color: #e74c3c; }
+        .badge-med { background-color: #f39c12; }
+        
+        .footer { margin-top: 50px; font-size: 0.85em; color: #888; text-align: center; border-top: 1px solid #ddd; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Architectural Strategy Assessment: Single vs. Multi-Org</h1>
+    <p><strong>Context:</strong> Government Cloud Plus Environment</p>
+    <p><strong>Current State:</strong> Public Sector Solutions (Grant Making) with OneID SSO.</p>
+    <p><strong>Proposed State:</strong> Addition of Foreign National & Visit Tracking with External Community Access.</p>
+
+    <div class="callout callout-rec">
+        <h3>Executive Recommendation: Multi-Org Strategy</h3>
+        <p>After analyzing the security requirements, user persona conflict, and architectural boundaries, a <strong>Dedicated New Org</strong> is recommended. The risk of exposing sensitive Grant data to external Foreign Nationals via a shared environment ("Permission Bleed") outweighs the administrative convenience of a Single Org.</p>
+    </div>
+
+    <h2>1. The Decision Matrix: General Architectural Principles</h2>
+    <p>Before analyzing the specific scenario, we apply standard Salesforce Enterprise Architecture criteria to determine when a split is necessary.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="30%">Decision Driver</th>
+                <th width="35%">Favors Single Org</th>
+                <th width="35%">Favors Multi-Org</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Data Governance & Security</strong></td>
+                <td>Data is shared; all users have similar clearance levels.</td>
+                <td><strong>Strict segregation required.</strong> External users present (Community) alongside sensitive internal data.</td>
+            </tr>
+            <tr>
+                <td><strong>Business Process</strong></td>
+                <td>Processes represent a continuous value chain (e.g., Lead &to; Order).</td>
+                <td><strong>Processes are unrelated</strong> (e.g., Grant Giving vs. National Security Screening).</td>
+            </tr>
+            <tr>
+                <td><strong>Release Management</strong></td>
+                <td>Single IT team manages all deployments.</td>
+                <td><strong>Distinct teams</strong> with different release cadences (e.g., Daily updates vs. Quarterly releases).</td>
+            </tr>
+            <tr>
+                <td><strong>Governor Limits</strong></td>
+                <td>Transaction volumes are moderate; no heavy batch contention.</td>
+                <td><strong>High volume contention.</strong> Risk of one app exhausting Org-Wide limits (API, Data Storage, Apex CPU).</td>
+            </tr>
+            <tr>
+                <td><strong>Org Complexity</strong></td>
+                <td>Manageable Schema; low number of custom objects.</td>
+                <td><strong>"Spaghetti" Schema.</strong> Approaching limits on Custom Fields per object or Tabs.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>2. Deep Dive: Option A - Single Org (The "Unified" Approach)</h2>
+    <p>Leveraging the existing GovCloud Plus instance to host the Foreign Visit app.</p>
+
+    <h3>Pros</h3>
+    <ul>
+        <li><strong>Infrastructure Re-use:</strong> No need to reconfigure MyDomain, Email Relays, Shield Encryption, or Backup solutions.</li>
+        <li><strong>360-Degree View:</strong> Native ability to report on "Foreign Nationals who are also Grant Applicants" without middleware.</li>
+        <li><strong>License Economy:</strong> Internal users who oversee both Grants and Security only consume one Salesforce license.</li>
+    </ul>
+
+    <h3>Cons & Architectural Risks</h3>
+    
+    <div class="callout callout-risk">
+        <strong>CRITICAL RISK: The "Portal Leak" Vulnerability</strong><br>
+        You plan to use <em>Customer Community Plus</em> licenses for Foreign Nationals. In a single org, these users technically coexist in the same database as Grant data. A simple misconfiguration of a <strong>Sharing Rule</strong> or <strong>Public Group</strong> could accidentally expose internal Grant records to the external public. In a GovCloud environment, this is often an unacceptable risk.
+    </div>
+
+    <ul>
+        <li><strong>Permission Bleed (Existing Issue):</strong> You noted users already see data they shouldn't. Adding a third distinct application creates a combinatorial explosion of Permission Sets. Field Level Security (FLS) is complex to manage when fields on the <code>User</code> or <code>Contact</code> object are shared across apps.</li>
+        <li><strong>Role Hierarchy Limits:</strong> Public Sector Solutions often has complex role hierarchies. Adding thousands of external Community Users (Foreign Nationals) can cause "Account Role Optimization" locking issues during updates.</li>
+        <li><strong>Deployment Bottlenecks:</strong> If the Grant team is in a "Code Freeze" for a major federal deadline, the Security team cannot deploy critical hotfixes for the Visit app because they share the same metadata pipeline.</li>
+        <li><strong>System Limits:</strong> Both apps will compete for the same 24-hour Async Apex limit and API request limit. A heavy batch job in Grant Making could stall the Visit Tracking system.</li>
+    </ul>
+
+    <h2>3. Deep Dive: Option B - Multi-Org (The "Segregated" Approach)</h2>
+    <p>Spinning up a new, dedicated Government Cloud Plus instance connected via OneID.</p>
+
+    <h3>Pros</h3>
+    <ul>
+        <li><strong>Hard Security Boundary:</strong> It is physically impossible for a Foreign National logging into Org B to access Grant Data in Org A. This "Air Gap" significantly lowers the burden of proof for compliance audits.</li>
+        <li><strong>Tailored Configuration:</strong>
+            <ul>
+                <li><strong>Session Settings:</strong> Enforce 15-minute timeouts for Security apps vs. 2-hour timeouts for Grant apps.</li>
+                <li><strong>Password Policies:</strong> Distinct complexity requirements for External Users.</li>
+            </ul>
+        </li>
+        <li><strong>Schema Cleanliness:</strong> The <code>Contact</code> object in the new org only has fields relevant to Visits. No clutter from Grant Making, improving performance and usability.</li>
+        <li><strong>Agile Independence:</strong> The Visit Tracking team can adopt their own DevOps pipeline (CI/CD) and release schedule without coordinating with the Grant team.</li>
+    </ul>
+
+    <h3>Cons & Mitigations</h3>
+    <table>
+        <tr>
+            <th>Challenge</th>
+            <th>Impact</th>
+            <th>Mitigation Strategy</th>
+        </tr>
+        <tr>
+            <td><strong>User Friction</strong></td>
+            <td>Internal staff must switch between Orgs.</td>
+            <td><strong>OneID SSO:</strong> Users don't manage separate passwords. Use an "App Launcher" approach to switch contexts seamlessly.</td>
+        </tr>
+        <tr>
+            <td><strong>Data Silos</strong></td>
+            <td>No global search across Grants and Visits.</td>
+            <td><strong>Middleware:</strong> Use MuleSoft or similar to flag "High Risk" individuals across orgs if necessary.</td>
+        </tr>
+        <tr>
+            <td><strong>Cost</strong></td>
+            <td>Duplicate fixed costs and potential double-licensing.</td>
+            <td>Offset by using cheaper <strong>Platform Licenses</strong> for the Visit org if PSS objects aren't required.</td>
+        </tr>
+    </table>
+
+    <h2>4. Final Technical Considerations</h2>
+
+    <h3>Identity & Access Management (OneID)</h3>
+    <p>Since you use OneID (Governmental SSO), the Multi-Org friction is minimal. You will configure OneID as the IdP (Identity Provider) for both orgs. The user simply sees two tiles on their intranet dashboard. <strong>This neutralizes the biggest downside of Multi-Org architecture (User Experience).</strong></p>
+
+    <h3>External User Volume (Community Plus)</h3>
+    <p>Salesforce <em>Customer Community Plus</em> licenses are high-capability licenses (Role-based sharing). In a Single Org, high volumes of these users (500k+) can degrade performance due to Sharing Rule calculation overhead (Group Membership Tables). Moving them to a separate org protects the performance of the critical Grant Making application.</p>
+
+    <div class="footer">
+        Generated by Gemini Architecture Assistant | December 2025
+    </div>
+
+</div>
+
+</body>
+</html>
