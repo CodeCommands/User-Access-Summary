@@ -1,82 +1,40 @@
-public class TempFileUploadAction {
-
-    // --- INNER CLASS FOR OUTPUT ---
-    public class ActionOutput {
-        @InvocableVariable(label='Temp File Upload ID' description='The Id of the Temp_File_Upload__c record found.')
-        public Id tempFileUploadId;
-
-        @InvocableVariable(label='Attachment File Name' description='The name of the related attachment file.')
-        public String fileName;
-
-        @InvocableVariable(label='File Content (Base64)' description='The Base64-encoded body of the file content.')
-        public String fileBodyBase64;
-    }
-
-    @InvocableMethod(label='Get Record and Attachment Data' description='Finds a Temp_File_Upload__c record by name and returns its related file content.')
-    public static List<ActionOutput> getRecordAndAttachment(List<String> recordNames) {
-        
-        List<ActionOutput> results = new List<ActionOutput>();
-        
-        if (recordNames == null || recordNames.isEmpty()) {
-            return results;
-        }
-
-        String targetName = recordNames[0];
-        
-        // --- STEP 1: Find the Temp_File_Upload__c Record ---
-        Temp_File_Upload__c targetRecord = [
-            SELECT Id
-            FROM Temp_File_Upload__c
-            WHERE Name = :targetName
-            LIMIT 1
-        ];
-
-        if (targetRecord == null) {
-            // Return an empty output object list if no record is found.
-            results.add(new ActionOutput());
-            return results;
-        }
-
-        // --- STEP 2: Query ContentDocumentLink to get the ContentDocumentId ---
-        // This query must be separate because ContentDocumentLink is restricted.
-        List<ContentDocumentLink> links = [
-            SELECT ContentDocumentId
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId = :targetRecord.Id
-            LIMIT 1 // Assuming each record only has 1 attachment
-        ];
-
-        if (links.isEmpty()) {
-            // Return empty output if the record is found but no file is attached.
-            results.add(new ActionOutput());
-            return results;
-        }
-        
-        Id contentDocId = links[0].ContentDocumentId;
-
-        // --- STEP 3: Query ContentVersion using the ContentDocumentId ---
-        // We query ContentVersion for the file data (VersionData).
-        List<ContentVersion> fileVersions = [
-            SELECT Id, Title, VersionData, FileType
-            FROM ContentVersion
-            WHERE ContentDocumentId = :contentDocId
-            AND IsLatest = TRUE
-            LIMIT 1
-        ];
-
-        // --- STEP 4: Package the Output ---
-        ActionOutput output = new ActionOutput();
-        output.tempFileUploadId = targetRecord.Id;
-
-        if (!fileVersions.isEmpty()) {
-            ContentVersion fileVersion = fileVersions[0];
-            
-            // Encode the file body to Base64 to safely return it to the Flow.
-            output.fileName = fileVersion.Title + '.' + fileVersion.FileType;
-            output.fileBodyBase64 = EncodingUtil.base64Encode(fileVersion.VersionData);
-        }
-
-        results.add(output);
-        return results;
-    }
-}
+The story should be: "We are using a standard Case record to demonstrate a universal architectural capability that can solve complex data fragmentation across any department."
+Here is the revised storyline, tailored for leadership, focusing on the Capability Framework.
+Demo Title: "Unlocking Institutional Knowledge: The Agentforce Architecture"
+1. The Executive Summary (Setting the Stage)
+Start by explaining WHY you built this POC on the Case object.
+"Team, today we are demonstrating a new architectural capability within Salesforce called Agentforce.
+To illustrate the power of this engine, we have deployed it on a standard 'Case' record. However, I want you to look past the specific 'Case' context. What we are showing is a reusable pattern for ingesting, analyzing, and summarizing complex data—specifically the 'dark data' hidden inside file attachments—across any business unit."
+2. The Demo Walkthrough (The "Mechanism")
+Narrate the flow, emphasizing the technical feat rather than the support task.
+[Action: Show the Record with Attachments]
+Narrator: "Here we have a record. It acts as our 'Data Hub.' It has structured fields, related contact details, and crucially, unstructured attachments (PDFs/Images). Normally, a human must manually synthesize these three disparate sources."
+[Action: Click the "Summarize" Button]
+Narrator: "We have introduced a 'Summarize' action. When I click this, we trigger the Agentforce Flex Prompt Template."
+[Action: Pause briefly while it runs]
+Narrator: "In these few seconds, the Agent is performing three sophisticated tasks simultaneously:
+1. Context Gathering: It is reading the record details.
+2. Relationship Traversal: It is fetching data from the related parent records.
+3. Document Parsing: Most importantly, it is 'reading' the attached files—extracting specific clauses, error codes, or requirements from the unstructured text."
+[Action: Show the Updated "Agentforce Summary" Field]
+Narrator: "The result is written back to this persistent field. It has successfully harmonized the data from the PDF and the Salesforce record into a single, standardized narrative."
+3. Highlighting the Capabilities (The "Core Value")
+This is the most important section for your goal. Break down exactly what Agentforce is doing that previous tools could not.
+"This demo highlights three specific capabilities that drive value for the end user:"
+• 1. Multi-Modal Analysis:
+"The Agent doesn't just read fields; it reads files. This solves the 'Swivel-Chair' problem where users lose time opening and scrolling through PDFs."
+• 2. Deterministic Output via Prompt Templates:
+"By using a 'Flex Prompt Template,' we control exactly how the Agent analyzes the data. We ensure every summary follows the same format, regardless of which user clicks the button."
+• 3. Human-Centric Automation:
+"Instead of a chatbot that disappears, we are using a Screen Flow to write the insight back to the record. This keeps the Human in the Loop (HITL) to review the data, while ensuring the insight is saved for reporting and future reference."
+4. The Vision: Applying the Pattern (The Real Use Cases)
+Connect the dots. Show leadership where this actually applies in your specific business context.
+"The 'Case' was just the proof of concept. We can lift and shift this exact architecture to our critical business objects immediately:"
+• For [Department A] - Application Intake:
+"Instead of a Case, imagine an Application Record. The Agent reads the applicant's web form data (Record) and cross-references it against their uploaded Resume and Certifications (Attachments) to score eligibility instantly."
+• For [Department B] - Vendor/Contract Management:
+"Imagine a Contract Record. The Agent reads the vendor details (Account) and scans the attached MSA (PDF) to summarize payment terms and highlight risk clauses."
+• For [Department C] - Compliance:
+"The Agent allows us to audit records by comparing field data against attached proofs of evidence, flagging discrepancies automatically."
+5. Closing Statement
+"This demo proves we now have the capability to automate the 'reading and synthesizing' tasks that consume 30-40% of our users' time. Our next step is to select the pilot object where this 'Document + Data' analysis will deliver the highest ROI."
