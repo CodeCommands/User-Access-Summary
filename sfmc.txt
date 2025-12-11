@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POC Plan: Unified Data & Engagement</title>
+    <title>POC Plan: Unified Data & Visualization</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -67,12 +67,12 @@
 </head>
 <body>
 
-    <h1>Proof of Concept Plan: Unified Data & Engagement</h1>
-    <p><strong>Project:</strong> Government Cloud Plus - Agentforce & Data Cloud Integration<br>
+    <h1>POC Plan: Unified Data & Visualization</h1>
+    <p><strong>Project:</strong> Government Cloud Plus - Data Cloud Visualization<br>
     <strong>Focus:</strong> Simulating Marketing Cloud Growth & Google Analytics Integration</p>
 
     <div class="highlight">
-        <strong>Objective:</strong> Demonstrate how Salesforce CRM data, Web Engagement (Mocked GA4), and Email Activity (Mocked Marketing Cloud) combine in Data Cloud to create a 360-degree view, power Analytics, and enable Agentforce to answer business queries.
+        <strong>Objective:</strong> Demonstrate how Salesforce CRM data, Web Engagement (Mocked GA4), and Email Activity (Mocked Marketing Cloud) combine in Data Cloud to create a 360-degree view and power <strong>Standard Salesforce Dashboards</strong> without moving data.
     </div>
 
     <h2>I. Inventory & Capability Assessment</h2>
@@ -90,17 +90,12 @@
             <tr>
                 <td><strong>Salesforce Core (Gov Cloud)</strong></td>
                 <td>Active</td>
-                <td>Source of truth for "Known" customers (Contacts).</td>
+                <td>Source of truth for "Known" customers (Contacts) and the layer for <strong>Reporting & Dashboards</strong>.</td>
             </tr>
             <tr>
                 <td><strong>Data Cloud</strong></td>
                 <td>Active</td>
                 <td>The engine. It will ingest real CRM data and "mock" engagement data to unify profiles.</td>
-            </tr>
-            <tr>
-                <td><strong>Agentforce</strong></td>
-                <td>Active</td>
-                <td>The consumer. It will query the unified data to answer user questions.</td>
             </tr>
             <tr>
                 <td><strong>Marketing Cloud Next</strong></td>
@@ -160,23 +155,30 @@
         <li><strong>Segmentation:</strong> Build a segment of users ready for outreach based on the mocked web traffic.</li>
     </ul>
 
-    <h3>Step 5: Agentforce Demonstration</h3>
+    <h3>Step 5: Visualization (Reports & Dashboards)</h3>
+    <p>Instead of copying data to CRM, we will use <strong>Data Cloud Reports</strong>.</p>
     <ul>
-        <li>Create an Agent Action that queries the Data Cloud Unified Profile.</li>
-        <li><strong>Demo Script:</strong> Ask Agentforce, <em>"Summarize the recent engagement for [Client Name]."</em></li>
-        <li><strong>Expected Output:</strong> Agentforce retrieves the mocked data and responds, <em>"Client has opened the December Newsletter and visited the website yesterday."</em></li>
+        <li><strong>Enable Feature:</strong> Go to Setup > Reports & Dashboards > Enable "Data Cloud Reporting".</li>
+        <li><strong>Create Report Type:</strong> Create a new Report Type selecting "Unified Individual" joined with "Web Engagement" and "Email Engagement".</li>
+        <li><strong>Build Dashboard:</strong> Create a Standard Salesforce Dashboard with the following components:
+            <ul>
+                <li><em>Chart 1:</em> "Top 5 Viewed Newsletter Articles" (Bar Chart).</li>
+                <li><em>Chart 2:</em> "Email Open Rate vs. Web Visits" (Correlation Chart).</li>
+                <li><em>Chart 3:</em> "High Intent Customers" (Table List).</li>
+            </ul>
+        </li>
     </ul>
 
     <h2>IV. Value Proposition for Stakeholders</h2>
 
     <ul>
-        <li><strong>360-Degree View:</strong> Demonstrate how Sales and Service reps can see anonymous web activity resolved to known Contacts without leaving Salesforce.</li>
-        <li><strong>Future-Proofing:</strong> Validate the architecture of Marketing Cloud Next (built on Data Cloud) before purchase.</li>
-        <li><strong>Security First:</strong> Show that this deep integration works within the Government Cloud Plus boundary using native connectors.</li>
+        <li><strong>Native Visualization:</strong> We can view millions of engagement records directly in Salesforce Dashboards without buying Tableau or CRM Analytics.</li>
+        <li><strong>Zero Copy Reporting:</strong> The data sits in Data Cloud but is viewable in Core. We do not bloat our Contact tables with millions of "Page View" records.</li>
+        <li><strong>Unified Intelligence:</strong> Marketing data (Email) and Website data (GA4) are visualized side-by-side with CRM data for the first time.</li>
     </ul>
 
     <div class="footer">
-        Prepared for Internal Review | Data Cloud & Agentforce POC
+        Prepared for Internal Review | Data Cloud Visualization POC
     </div>
 
 </body>
