@@ -1,1 +1,193 @@
-a
+mock_salesforce_contacts.csv
+
+ContactId,FirstName,LastName,Email,Title,Department,MailingState
+003Gov001,Arthur,Dent,arthur.dent@example.gov,Director,Public Works,VA
+003Gov002,Ford,Prefect,ford.prefect@example.gov,Researcher,Transportation,DC
+003Gov003,Tricia,McMillan,tricia.mcmillan@example.gov,Analyst,Science,MD
+003Gov004,Zaphod,Beeblebrox,zaphod@example.gov,Agency Head,Administration,DC
+003Gov005,Marvin,Android,marvin@example.gov,Admin Assistant,Internal Support,VA
+003Gov006,Sarah,Connor,sarah.connor@example.gov,Security Chief,Defense,VA
+003Gov007,Kyle,Reese,kyle.reese@example.gov,Field Officer,Defense,VA
+003Gov008,Ellen,Ripley,ellen.ripley@example.gov,Inspector,Public Works,MD
+003Gov009,Dwayne,Hicks,dwayne.hicks@example.gov,Corporal,Defense,MD
+003Gov010,Dana,Scully,dana.scully@example.gov,Investigator,Justice,DC
+003Gov011,Fox,Mulder,fox.mulder@example.gov,Investigator,Justice,DC
+003Gov012,Walter,Skinner,walter.skinner@example.gov,Director,Justice,DC
+003Gov013,Jean-Luc,Picard,picard@example.gov,Diplomat,State Dept,DC
+003Gov014,William,Riker,riker@example.gov,Commander,Transportation,VA
+003Gov015,Geordi,LaForge,laforge@example.gov,Engineer,Public Works,MD
+003Gov016,Beverly,Crusher,crusher@example.gov,Doctor,Health,MD
+003Gov017,Deanna,Troi,troi@example.gov,Counselor,Health,VA
+003Gov018,Data,Soong,data@example.gov,Analyst,Science,DC
+003Gov019,Worf,Rozhenko,worf@example.gov,Security,Defense,VA
+003Gov020,Hikaru,Sulu,sulu@example.gov,Pilot,Transportation,MD
+003Gov021,Nyota,Uhura,uhura@example.gov,Comms Officer,State Dept,DC
+003Gov022,Pavel,Chekov,chekov@example.gov,Navigator,Transportation,MD
+003Gov023,Montgomery,Scott,scotty@example.gov,Engineer,Public Works,VA
+003Gov024,Leonard,McCoy,mccoy@example.gov,Doctor,Health,VA
+003Gov025,James,Kirk,kirk@example.gov,Captain,Administration,DC
+
+
+mock_email_engagement.csv
+SubscriberKey,EmailAddress,CampaignName,Status,EventDate,DeviceType
+003Gov001,arthur.dent@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov001,arthur.dent@example.gov,Welcome_Email,Open,2025-12-01T08:05:00Z,Mobile
+003Gov002,ford.prefect@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov003,tricia.mcmillan@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov003,tricia.mcmillan@example.gov,Welcome_Email,Open,2025-12-01T09:00:00Z,Desktop
+003Gov004,zaphod@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov005,marvin@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov006,sarah.connor@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov006,sarah.connor@example.gov,Welcome_Email,Open,2025-12-01T08:10:00Z,Mobile
+003Gov007,kyle.reese@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov008,ellen.ripley@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov008,ellen.ripley@example.gov,Welcome_Email,Open,2025-12-01T10:00:00Z,Desktop
+003Gov008,ellen.ripley@example.gov,Welcome_Email,Click,2025-12-01T10:02:00Z,Desktop
+003Gov010,dana.scully@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov010,dana.scully@example.gov,Welcome_Email,Open,2025-12-01T08:15:00Z,Desktop
+003Gov011,fox.mulder@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov012,walter.skinner@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov015,laforge@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Desktop
+003Gov015,laforge@example.gov,Welcome_Email,Open,2025-12-01T11:00:00Z,Desktop
+003Gov023,scotty@example.gov,Welcome_Email,Sent,2025-12-01T08:00:00Z,Mobile
+003Gov023,scotty@example.gov,Welcome_Email,Open,2025-12-01T11:05:00Z,Mobile
+003Gov001,arthur.dent@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov001,arthur.dent@example.gov,Budget_Update_2026,Open,2025-12-05T09:01:00Z,Mobile
+003Gov001,arthur.dent@example.gov,Budget_Update_2026,Click,2025-12-05T09:02:00Z,Mobile
+003Gov002,ford.prefect@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov002,ford.prefect@example.gov,Budget_Update_2026,Open,2025-12-05T09:30:00Z,Mobile
+003Gov003,tricia.mcmillan@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov003,tricia.mcmillan@example.gov,Budget_Update_2026,Open,2025-12-05T10:00:00Z,Desktop
+003Gov003,tricia.mcmillan@example.gov,Budget_Update_2026,Click,2025-12-05T10:05:00Z,Desktop
+003Gov004,zaphod@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov004,zaphod@example.gov,Budget_Update_2026,Open,2025-12-05T09:10:00Z,Mobile
+003Gov005,marvin@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov006,sarah.connor@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov007,kyle.reese@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov008,ellen.ripley@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov008,ellen.ripley@example.gov,Budget_Update_2026,Open,2025-12-05T09:15:00Z,Desktop
+003Gov008,ellen.ripley@example.gov,Budget_Update_2026,Click,2025-12-05T09:16:00Z,Desktop
+003Gov009,dwayne.hicks@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov009,dwayne.hicks@example.gov,Budget_Update_2026,Open,2025-12-05T09:45:00Z,Mobile
+003Gov010,dana.scully@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov010,dana.scully@example.gov,Budget_Update_2026,Open,2025-12-05T10:20:00Z,Desktop
+003Gov011,fox.mulder@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov011,fox.mulder@example.gov,Budget_Update_2026,Open,2025-12-05T10:25:00Z,Mobile
+003Gov012,walter.skinner@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov013,picard@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov013,picard@example.gov,Budget_Update_2026,Open,2025-12-05T11:00:00Z,Desktop
+003Gov013,picard@example.gov,Budget_Update_2026,Click,2025-12-05T11:15:00Z,Desktop
+003Gov014,riker@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov015,laforge@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov015,laforge@example.gov,Budget_Update_2026,Open,2025-12-05T09:15:00Z,Desktop
+003Gov015,laforge@example.gov,Budget_Update_2026,Click,2025-12-05T09:16:00Z,Desktop
+003Gov016,crusher@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov017,troi@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov018,data@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov018,data@example.gov,Budget_Update_2026,Open,2025-12-05T09:00:01Z,Desktop
+003Gov019,worf@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov020,sulu@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov021,uhura@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov022,chekov@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov023,scotty@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov023,scotty@example.gov,Budget_Update_2026,Open,2025-12-05T09:45:00Z,Mobile
+003Gov023,scotty@example.gov,Budget_Update_2026,Click,2025-12-05T09:50:00Z,Mobile
+003Gov024,mccoy@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Mobile
+003Gov025,kirk@example.gov,Budget_Update_2026,Sent,2025-12-05T09:00:00Z,Desktop
+003Gov025,kirk@example.gov,Budget_Update_2026,Open,2025-12-05T10:00:00Z,Desktop
+003Gov001,arthur.dent@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov001,arthur.dent@example.gov,Security_Alert,Open,2025-12-08T12:01:00Z,Mobile
+003Gov006,sarah.connor@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov006,sarah.connor@example.gov,Security_Alert,Open,2025-12-08T12:05:00Z,Mobile
+003Gov006,sarah.connor@example.gov,Security_Alert,Click,2025-12-08T12:06:00Z,Mobile
+003Gov007,kyle.reese@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov007,kyle.reese@example.gov,Security_Alert,Open,2025-12-08T12:10:00Z,Mobile
+003Gov009,dwayne.hicks@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov009,dwayne.hicks@example.gov,Security_Alert,Open,2025-12-08T12:15:00Z,Mobile
+003Gov010,dana.scully@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Desktop
+003Gov011,fox.mulder@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov011,fox.mulder@example.gov,Security_Alert,Open,2025-12-08T12:20:00Z,Mobile
+003Gov019,worf@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Mobile
+003Gov019,worf@example.gov,Security_Alert,Open,2025-12-08T12:02:00Z,Mobile
+003Gov019,worf@example.gov,Security_Alert,Click,2025-12-08T12:03:00Z,Mobile
+003Gov025,kirk@example.gov,Security_Alert,Sent,2025-12-08T12:00:00Z,Desktop
+003Gov025,kirk@example.gov,Security_Alert,Open,2025-12-08T12:30:00Z,Desktop
+003Gov025,kirk@example.gov,Security_Alert,Click,2025-12-08T12:35:00Z,Desktop
+
+
+mock_web_traffic.csv
+ClientId,UserEmail,PageLocation,PageTitle,EventName,EngagementTimeSec,EventTimestamp
+GA_1001,arthur.dent@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-01T08:06:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/news/welcome,Welcome Letter,page_view,45,2025-12-01T08:06:30Z
+GA_1003,tricia.mcmillan@example.gov,https://gov.site/home,Home Page,page_view,20,2025-12-01T09:01:00Z
+GA_1003,tricia.mcmillan@example.gov,https://gov.site/policy/overview,Policy Overview,page_view,300,2025-12-01T09:05:00Z
+GA_1006,sarah.connor@example.gov,https://gov.site/home,Home Page,page_view,5,2025-12-01T08:11:00Z
+GA_1006,sarah.connor@example.gov,https://gov.site/security/threats,Threat Levels,page_view,120,2025-12-01T08:12:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/home,Home Page,page_view,15,2025-12-01T10:03:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/news/welcome,Welcome Letter,page_view,60,2025-12-01T10:04:00Z
+GA_1010,dana.scully@example.gov,https://gov.site/home,Home Page,page_view,50,2025-12-01T08:16:00Z
+GA_1015,laforge@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-01T11:01:00Z
+GA_1015,laforge@example.gov,https://gov.site/tech/specs,Technical Specs,page_view,600,2025-12-01T11:05:00Z
+GA_1023,scotty@example.gov,https://gov.site/home,Home Page,page_view,20,2025-12-01T11:06:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,180,2025-12-05T09:02:30Z
+GA_1001,arthur.dent@example.gov,https://gov.site/finance/calculator,Cost Calculator,page_view,240,2025-12-05T09:06:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/home,Home Page,page_view,30,2025-12-05T09:12:00Z
+GA_1003,tricia.mcmillan@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,120,2025-12-05T10:06:00Z
+GA_1003,tricia.mcmillan@example.gov,https://gov.site/science/grants,Science Grants,page_view,400,2025-12-05T10:10:00Z
+GA_1004,zaphod@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,10,2025-12-05T09:11:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,90,2025-12-05T09:17:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/public-works/safety,Safety Manual,page_view,150,2025-12-05T09:20:00Z
+GA_1013,picard@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,200,2025-12-05T11:16:00Z
+GA_1013,picard@example.gov,https://gov.site/international/relations,Intl Relations,page_view,300,2025-12-05T11:20:00Z
+GA_1015,laforge@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,100,2025-12-05T09:17:00Z
+GA_1023,scotty@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,120,2025-12-05T09:51:00Z
+GA_1023,scotty@example.gov,https://gov.site/public-works/engine-specs,Engine Specs,page_view,600,2025-12-05T09:55:00Z
+GA_1025,kirk@example.gov,https://gov.site/home,Home Page,page_view,40,2025-12-05T10:01:00Z
+GA_1025,kirk@example.gov,https://gov.site/news/budget-2026,Budget 2026,page_view,60,2025-12-05T10:02:00Z
+GA_1006,sarah.connor@example.gov,https://gov.site/security/alert,Security Alert,page_view,180,2025-12-08T12:07:00Z
+GA_1006,sarah.connor@example.gov,https://gov.site/security/protocol,Defense Protocol,page_view,300,2025-12-08T12:12:00Z
+GA_1019,worf@example.gov,https://gov.site/security/alert,Security Alert,page_view,200,2025-12-08T12:04:00Z
+GA_1019,worf@example.gov,https://gov.site/security/weapons,Weapon Safety,page_view,120,2025-12-08T12:08:00Z
+GA_1025,kirk@example.gov,https://gov.site/security/alert,Security Alert,page_view,60,2025-12-08T12:36:00Z
+GA_1050,unknown@example.com,https://gov.site/home,Home Page,page_view,0,2025-12-09T09:00:00Z
+GA_1051,unknown@example.com,https://gov.site/home,Home Page,page_view,5,2025-12-09T09:05:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-09T10:00:00Z
+GA_1015,laforge@example.gov,https://gov.site/tech/downloads,Manuals,page_view,60,2025-12-09T10:00:00Z
+GA_1015,laforge@example.gov,https://gov.site/tech/downloads,Manuals,download_pdf,0,2025-12-09T10:01:00Z
+GA_1023,scotty@example.gov,https://gov.site/tech/downloads,Manuals,page_view,60,2025-12-09T10:05:00Z
+GA_1023,scotty@example.gov,https://gov.site/tech/downloads,Manuals,download_pdf,0,2025-12-09T10:06:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/public-works/safety,Safety Manual,page_view,120,2025-12-09T11:00:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:00:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:01:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:02:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:03:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:04:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:05:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:06:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:07:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:08:00Z
+GA_1018,data@example.gov,https://gov.site/science/ai,AI Ethics,page_view,5,2025-12-09T11:09:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/contact-us,Contact Support,page_view,60,2025-12-10T09:00:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/contact-us/success,Form Success,page_view,10,2025-12-10T09:02:00Z
+GA_1002,ford.prefect@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-10T09:30:00Z
+GA_1002,ford.prefect@example.gov,https://gov.site/transport/roads,Road Closures,page_view,60,2025-12-10T09:31:00Z
+GA_1014,riker@example.gov,https://gov.site/transport/roads,Road Closures,page_view,120,2025-12-10T09:35:00Z
+GA_1020,sulu@example.gov,https://gov.site/transport/roads,Road Closures,page_view,120,2025-12-10T09:40:00Z
+GA_1022,chekov@example.gov,https://gov.site/transport/roads,Road Closures,page_view,120,2025-12-10T09:45:00Z
+GA_1021,uhura@example.gov,https://gov.site/home,Home Page,page_view,15,2025-12-10T10:00:00Z
+GA_1021,uhura@example.gov,https://gov.site/international/comms,Secure Comms,page_view,300,2025-12-10T10:01:00Z
+GA_1005,marvin@example.gov,https://gov.site/home,Home Page,page_view,5,2025-12-10T14:00:00Z
+GA_1005,marvin@example.gov,https://gov.site/internal/complaints,Complaints Form,page_view,600,2025-12-10T14:01:00Z
+GA_1005,marvin@example.gov,https://gov.site/internal/complaints,Complaints Form,form_submit,0,2025-12-10T14:15:00Z
+GA_1016,crusher@example.gov,https://gov.site/health/vaccines,Vaccine Updates,page_view,300,2025-12-10T15:00:00Z
+GA_1024,mccoy@example.gov,https://gov.site/health/vaccines,Vaccine Updates,page_view,300,2025-12-10T15:05:00Z
+GA_1017,troi@example.gov,https://gov.site/health/mental-health,Wellness,page_view,400,2025-12-10T15:10:00Z
+GA_1013,picard@example.gov,https://gov.site/home,Home Page,page_view,20,2025-12-10T16:00:00Z
+GA_1009,dwayne.hicks@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-10T16:05:00Z
+GA_1007,kyle.reese@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-10T16:10:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/home,Home Page,page_view,10,2025-12-11T08:00:00Z
+GA_1001,arthur.dent@example.gov,https://gov.site/news/weekend-update,Weekend Update,page_view,120,2025-12-11T08:01:00Z
+GA_1003,tricia.mcmillan@example.gov,https://gov.site/news/weekend-update,Weekend Update,page_view,120,2025-12-11T08:05:00Z
+GA_1008,ellen.ripley@example.gov,https://gov.site/news/weekend-update,Weekend Update,page_view,120,2025-12-11T08:10:00Z
+GA_1025,kirk@example.gov,https://gov.site/news/weekend-update,Weekend Update,page_view,60,2025-12-11T08:15:00Z
+
