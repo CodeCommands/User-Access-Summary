@@ -1,1 +1,14 @@
-a
+Subject: Technical Feasibility Inquiry: Agentforce for PDF Ingestion & Apex Integration
+Hi [Architect Name],
+I hope this email finds you well.
+We are currently exploring a migration of one of our data intake processes to Agentforce, moving from a manual CSV-based workflow to an AI-driven PDF ingestion model. I wanted to share our proposed flow and ask for your insight regarding feasibility, architectural considerations, and best practices.
+Current vs. Proposed State
+• Current Solution: Users upload a .csv file into a custom LWC. We use the sheetJS library to parse rows and pass raw data into Apex. The Apex logic then identifies/creates Accounts and Contacts, and ultimately generates "RTES Review" records.
+• Proposed Agentforce Solution: We want to allow users to drop a .pdf file (unstructured data). We look to Agentforce to analyze the document, extract specific variables, and pass a structured payload (JSON) to our existing Apex business logic to handle the record creation.
+Key Capabilities & Technical Questions
+Based on our requirements, could you clarify the following capabilities within the Agentforce framework?
+1. PDF Ingestion: Does Agentforce natively support reading and interpreting PDF content via LLM, or does this require a specific connector/intermediary service (e.g., Data Cloud or MuleSoft)?
+2. Structured Output (JSON): Can we instruct the Agent to output the analysis in a strict JSON format that our Apex classes can deserialize?
+3. Complex Data Sets: The PDFs may contain multiple data sets (e.g., multiple lists of contacts or reviews in a single document). Can the Agent isolate and iterate through these sets reliably?
+4. User Verification (Human-in-the-Loop): We need a verification step before the records are committed. Is the best pattern to have the Agent return the data to an LWC for user preview, or should the Agent handle a "draft" creation process first?
+5. Invocation Point: Where does this interaction optimally live? Should users drop the file into a standard Chatter feed, a dedicated Agentforce component, or a new custom LWC that invokes the Agent?
